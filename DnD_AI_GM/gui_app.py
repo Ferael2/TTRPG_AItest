@@ -183,6 +183,10 @@ if "messages" not in st.session_state:
 
 # 5. Render History with Edit Capability
 for idx, msg in enumerate(st.session_state.messages):
+    # Ensure msg is a dictionary to prevent AttributeError
+    if not isinstance(msg, dict):
+        continue
+
     if msg.get("role") == "system":
         continue
     
@@ -191,17 +195,13 @@ for idx, msg in enumerate(st.session_state.messages):
     text_to_display = msg.get("content") or msg.get("text", "")
     
     with st.chat_message(role):
-        
         if role == "user":
-            col1, col2 = st.columns([0.85, 0.15])  # Slightly wider action column for the button
+            col1, col2 = st.columns([0.85, 0.15])
             with col1:
                 st.write(text_to_display)
             with col2:
-                # use_container_width makes the popover expand cleanly
                 with st.popover("✏️ Edit", use_container_width=True):
                     st.markdown("**Edit & Rewind Action**")
-                    
-                    # Using text_area makes the box wider and multi-line for long responses
                     new_text = st.text_area(
                         "Rewrite action:", 
                         value=text_to_display, 
@@ -210,18 +210,16 @@ for idx, msg in enumerate(st.session_state.messages):
                     )
                     
                     if st.button("Save & Rewind", key=f"btn_{idx}", use_container_width=True):
-                        # Update prompt & trim out future turns
                         st.session_state.messages[idx]["content"] = new_text
                         st.session_state.messages[idx]["text"] = new_text
                         st.session_state.messages = st.session_state.messages[:idx + 1]
                         
-                        # Regenerate GM outcome for edited prompt
                         api_messages = [{"role": "system", "content": system_instruction}] + [
                             {
                                 "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
                                 "content": m.get("content") or m.get("text", "")
                             } 
-                            for m in st.session_state.messages if m.get("role") != "system"
+                            for m in st.session_state.messages if isinstance(m, dict) and m.get("role") != "system"
                         ]
                         
                         response = call_openrouter(api_messages)
