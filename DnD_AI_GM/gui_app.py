@@ -29,7 +29,17 @@ def load_campaign():
 def load_state():
     if os.path.exists("campaign_state.json"):
         with open("campaign_state.json", "r", encoding="utf-8") as f:
-            return json.load(f)
+            try:
+                return json.load(f)
+            except Exception:
+                pass
+    # Fallback default dictionary so .get() never crashes
+    return {
+        "player": {"name": "Hero", "hp": 10, "max_hp": 10, "inventory": []},
+        "current_location": "Starting Location",
+        "key_npcs": [],
+        "active_quests": []
+    }
 
 game_state = load_state()
 
