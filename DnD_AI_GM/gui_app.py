@@ -35,12 +35,7 @@ game_state = load_state()
 
 # Sidebar Controls
 with st.sidebar:
-    st.header("📜 World Codex")
-    if world_info:
-        st.text_area("Setting Lore", world_info, height=250, disabled=True)
-    else:
-        st.warning("world_codex.txt not found!")
-
+    
     st.header("📊 Campaign State")
     
     st.subheader(f"📍 Location: {game_state.get('current_location', 'Unknown')}")
@@ -56,6 +51,44 @@ with st.sidebar:
     with st.expander("👥 Key NPCs"):
         for npc in game_state.get("key_npcs", []):
             st.write(f"• **{npc.get('name')}**: {npc.get('role')}")
+
+    st.markdown("---")
+    st.header("💾 Save & Load Campaign")
+    # 1. DOWNLOAD CURRENT SAVES
+    if os.path.exists(SAVE_FILE):
+        with open(SAVE_FILE, "r", encoding="utf-8") as f:
+            st.download_button(
+                label="📥 Download Chat Save",
+                data=f.read(),
+                file_name="campaign_save.json",
+                mime="application/json",
+                use_container_width=True
+            )
+
+    if os.path.exists("campaign_state.json"):
+        with open("campaign_state.json", "r", encoding="utf-8") as f:
+            st.download_button(
+                label="📥 Download State Save",
+                data=f.read(),
+                file_name="campaign_state.json",
+                mime="application/json",
+                use_container_width=True
+            )
+
+    # 2. UPLOAD SAVES FROM DEVICE
+    uploaded_history = st.file_uploader("Upload Chat Save (campaign_save.json)", type=["json"], key="upload_hist")
+    if uploaded_history is not None:
+        with open(SAVE_FILE, "wb") as f:
+            f.write(uploaded_history.getbuffer())
+        st.success("Chat history loaded!")
+        st.rerun()
+
+    uploaded_state = st.file_uploader("Upload State Save (campaign_state.json)", type=["json"], key="upload_state")
+    if uploaded_state is not None:
+        with open("campaign_state.json", "wb") as f:
+            f.write(uploaded_state.getbuffer())
+        st.success("Campaign state loaded!")
+        st.rerun()
 
     st.markdown("---")
     if st.button("🗑️ Delete Save & Restart"):
