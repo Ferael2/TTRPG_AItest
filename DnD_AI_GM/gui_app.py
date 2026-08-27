@@ -139,6 +139,33 @@ Keep the output under 250 words. Output ONLY the updated summary text.
 # Execute state load after functions are defined
 game_state = load_state()
 
+# --- SYSTEM INSTRUCTION (LOADED BEFORE SIDEBAR SO SIDEBAR BUTTONS CAN READ IT) ---
+campaign_summary = game_state.get("summary", "The campaign has just begun.")
+
+system_instruction = f"""
+You are an expert TTRPG Game Master running a solo campaign for the player.
+
+WORLD SETTING & LORE:
+{world_info}
+
+CAMPAIGN SUMMARY & RECENT EVENTS:
+{campaign_summary}
+
+CURRENT GAME STATE (PERSISTENT FACTS):
+{json.dumps(game_state, indent=2)}
+
+GAME RULES:
+1. Speak in the 2nd person ("You enter...", "You see...").
+2. Describe scenes with rich sensory details.
+3. Refer strictly to CAMPAIGN SUMMARY for NPC statuses (e.g., check if an NPC is unconscious/hospitalized before having others talk about them).
+4. Do not make major decisions or force actions for the player's character.
+5. When the player attempts something difficult or risky, ask for a D&D skill check (e.g., [Roll Perception] or [Roll Stealth]).
+6. Focus on character development over action and fighting (But fights and action can still happen but rarely).
+7. The player is allowed to romance NPCs.
+8. Create interesting and believable scenarios for the characters to interact in.
+9. End EVERY response with 2–3 logical options or ask "What do you do?".
+"""
+
 # --- SIDEBAR CONTROLS ---
 with st.sidebar:
     st.header("📊 Campaign State")
@@ -167,6 +194,33 @@ with st.sidebar:
         st.info("ℹ️ Chat history active (Default state used)")
     else:
         st.warning("⚠️ No save files detected")
+
+    # Emergency Retry Button if the AI fails to reply
+    if "messages" in st.session_state and st.session_state.messages and st.session_state.messages[-1].get("role") == "user":
+        st.warning("⚠️ The GM hasn't responded to your last action yet.")
+        if st.button("🎲 Retry GM Response", use_container_width=True):
+            with st.spinner("Retrying GM response..."):
+                MAX_HISTORY_TURNS = 12
+                recent_history = st.session_state.messages[-MAX_HISTORY_TURNS:]
+                api_messages = [{"role": "system", "content": system_instruction}] + [
+                    {
+                        "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
+                        "content": m.get("content") or m.get("text", "")
+                    } 
+                    for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
+                ]
+                try:
+                    response = call_openrouter(api_messages)
+                    reply = response.choices[0].message.content
+                    st.session_state.messages.append({
+                        "role": "assistant", 
+                        "content": reply,
+                        "text": reply
+                    })
+                    save_campaign()
+                    st.rerun()
+                except Exception as e:
+                    st.error(f"Retry failed: {e}")
 
     with st.expander("⚙️ Manage Saves (Upload / Download)", expanded=not (chat_exists and state_exists)):
         st.subheader("📥 Downloads")
@@ -234,33 +288,6 @@ with st.sidebar:
         st.session_state.messages = []
         st.rerun()
 
-# 2. System Instructions
-campaign_summary = game_state.get("summary", "The campaign has just begun.")
-
-system_instruction = f"""
-You are an expert TTRPG Game Master running a solo campaign for the player.
-
-WORLD SETTING & LORE:
-{world_info}
-
-CAMPAIGN SUMMARY & RECENT EVENTS:
-{campaign_summary}
-
-CURRENT GAME STATE (PERSISTENT FACTS):
-{json.dumps(game_state, indent=2)}
-
-GAME RULES:
-1. Speak in the 2nd person ("You enter...", "You see...").
-2. Describe scenes with rich sensory details.
-3. Refer strictly to CAMPAIGN SUMMARY for NPC statuses (e.g., check if an NPC is unconscious/hospitalized before having others talk about them).
-4. Do not make major decisions or force actions for the player's character.
-5. When the player attempts something difficult or risky, ask for a D&D skill check (e.g., [Roll Perception] or [Roll Stealth]).
-6. Focus on character development over action and fighting (But fights and action can still happen but rarely).
-7. The player is allowed to romance NPCs.
-8. Create interesting and believable scenarios for the characters to interact in.
-9. End EVERY response with 2–3 logical options or ask "What do you do?".
-"""
-
 # 4. Load Conversation Memory
 if "messages" not in st.session_state:
     saved_history = load_campaign()
@@ -324,16 +351,18 @@ for idx, msg in enumerate(st.session_state.messages):
                             for m in st.session_state.messages if isinstance(m, dict) and m.get("role") != "system"
                         ]
                         
-                        response = call_openrouter(api_messages)
-                        reply = response.choices[0].message.content
+                        try:
+                            response = call_openrouter(api_messages)
+                            reply = response.choices[0].message.content
+                            st.session_state.messages.append({
+                                "role": "assistant", 
+                                "content": reply,
+                                "text": reply
+                            })
+                            save_campaign()
+                        except Exception as e:
+                            st.error(f"API Error during rewind: {e}")
                         
-                        st.session_state.messages.append({
-                            "role": "assistant", 
-                            "content": reply,
-                            "text": reply
-                        })
-                        
-                        save_campaign()
                         st.rerun()
         else:
             col1, col2 = st.columns([0.85, 0.15])
