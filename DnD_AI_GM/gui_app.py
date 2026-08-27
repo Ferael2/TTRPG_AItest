@@ -57,10 +57,10 @@ if "client" not in st.session_state:
     )
 
 FREE_MODELS = [
-    "openrouter/auto",
-    "google/gemma-2-9b-it:free",
-    "meta-llama/llama-3.1-8b-instruct:free",
-    "mistralai/mistral-7b-instruct:free"
+    "openrouter/free",
+    "meta-llama/llama-3.3-70b-instruct:free",
+    "openai/gpt-oss-120b:free",
+    "google/gemma-4-31b-it:free"
 ]
 
 def call_openrouter(messages):
