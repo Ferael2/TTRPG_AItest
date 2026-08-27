@@ -134,7 +134,7 @@ Keep the output under 250 words. Output ONLY the updated summary text.
             
     except Exception as e:
         st.error(f"API Error during summary: {e}")
-        return None
+        return existing_summary  # Return existing summary instead of None on error
 
 # Execute state load after functions are defined
 game_state = load_state()
@@ -378,25 +378,30 @@ if user_input := st.chat_input("What do you do?"):
                 for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
             ]
             
-            response = call_openrouter(api_messages)
-            reply = response.choices[0].message.content
-            st.write(reply)
+            try:
+                response = call_openrouter(api_messages)
+                reply = response.choices[0].message.content
+            except Exception as e:
+                st.error(f"Failed to generate response: {e}")
+                reply = None
 
-    st.session_state.messages.append({
-        "role": "assistant", 
-        "content": reply,
-        "text": reply
-    })
+    # Only append if a valid reply was returned
+    if reply:
+        st.session_state.messages.append({
+            "role": "assistant", 
+            "content": reply,
+            "text": reply
+        })
 
-    # Track turn count and auto-summarize every 10 turns
-    if "turn_counter" not in st.session_state:
-        st.session_state.turn_counter = 0
+        # Track turn count and auto-summarize every 10 turns
+        if "turn_counter" not in st.session_state:
+            st.session_state.turn_counter = 0
 
-    st.session_state.turn_counter += 1
+        st.session_state.turn_counter += 1
 
-    if st.session_state.turn_counter % 10 == 0:
-        with st.spinner("Updating campaign memory summary..."):
-            update_campaign_summary()
-    
-    save_campaign()
-    st.rerun()
+        if st.session_state.turn_counter % 10 == 0:
+            with st.spinner("Updating campaign memory summary..."):
+                update_campaign_summary()
+
+        save_campaign()
+        st.rerun()
