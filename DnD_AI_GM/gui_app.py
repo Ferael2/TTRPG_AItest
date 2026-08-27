@@ -311,12 +311,22 @@ if "messages" not in st.session_state:
         })
         save_campaign()
 
-# 5. Render History with Edit Capability (User & Assistant)
-for idx, msg in enumerate(st.session_state.messages):
-    if not isinstance(msg, dict):
-        continue
+# 5. Render History with Edit Capability (Optimized Display)
+DISPLAY_LIMIT = 15  # Only render the last 15 messages by default
 
-    if msg.get("role") == "system":
+total_messages = len(st.session_state.messages)
+show_all = st.checkbox("📜 Show Full Campaign History", value=False)
+
+# Determine starting index for rendering
+start_idx = 0 if show_all else max(0, total_messages - DISPLAY_LIMIT)
+
+if not show_all and total_messages > DISPLAY_LIMIT:
+    st.info(f"Showing last {DISPLAY_LIMIT} messages. Check 'Show Full Campaign History' above to view all {total_messages} turns.")
+
+for idx in range(start_idx, total_messages):
+    msg = st.session_state.messages[idx]
+    
+    if not isinstance(msg, dict) or msg.get("role") == "system":
         continue
     
     raw_role = msg.get("role", "user")
@@ -337,7 +347,6 @@ for idx, msg in enumerate(st.session_state.messages):
                         height=150, 
                         key=f"edit_{idx}"
                     )
-                    
                     if st.button("Save & Rewind", key=f"btn_{idx}", use_container_width=True):
                         st.session_state.messages[idx]["content"] = new_text
                         st.session_state.messages[idx]["text"] = new_text
