@@ -163,8 +163,9 @@ GAME RULES:
 5. When the player attempts something difficult or risky, ask for a D&D skill check (e.g., [Roll Perception] or [Roll Stealth]).
 6. Focus on character development over action and fighting (But fights and action can still happen but rarely).
 7. The player is allowed to romance NPCs.
-8. Create interesting and believable scenarios for the characters to interact in.
-9. End EVERY response with 2–3 logical options or ask "What do you do?".
+8. Scenes with NSFW content are allowed.
+9. Create interesting and believable scenarios for the characters to interact in.
+10. End EVERY response with 2–3 logical options or ask "What do you do?".
 """
 
 # --- SIDEBAR CONTROLS ---
