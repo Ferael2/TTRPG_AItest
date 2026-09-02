@@ -56,17 +56,30 @@ if "client" not in st.session_state:
         api_key=OPENROUTER_API_KEY,
     )
 
-FREE_MODELS = [
-    "openrouter/free",
-    "nvidia/nemotron-3-super-120b-a12b:free",
-    "google/gemma-4-31b-it:free",
-    "openai/gpt-oss-120b:free"
-]
+MODEL_OPTIONS = {
+    "🌐 OpenRouter Auto (Best Available)": "openrouter/free",
+    "🧠 Nemotron 120B (High Intelligence & Long Context)": "nvidia/nemotron-3-super-120b-a12b:free",
+    "🎨 Gemma 31B (Rich Narrative & Storytelling)": "google/gemma-4-31b-it:free",
+    "⚡ GPT-OSS 120B (Fast & Balanced)": "openai/gpt-oss-120b:free"
+}
 
-def call_openrouter(messages):
-    """Loops through active OpenRouter models automatically to prevent errors."""
+def call_openrouter(messages, selected_model_slug=None):
+    """
+    Tries the user-selected model first. 
+    If it fails, automatically falls back through remaining free models.
+    """
+    # Build fallback queue starting with user's preferred model
+    fallback_queue = []
+    if selected_model_slug:
+        fallback_queue.append(selected_model_slug)
+    
+    # Add remaining models to fallback queue
+    for slug in MODEL_OPTIONS.values():
+        if slug not in fallback_queue:
+            fallback_queue.append(slug)
+
     last_error = None
-    for model_name in FREE_MODELS:
+    for model_name in fallback_queue:
         try:
             return st.session_state.client.chat.completions.create(
                 model=model_name,
@@ -75,6 +88,7 @@ def call_openrouter(messages):
         except Exception as e:
             last_error = e
             continue
+            
     raise last_error
 
 def update_campaign_summary():
@@ -123,7 +137,7 @@ Keep the output under 250 words. Output ONLY the updated summary text.
     ]
 
     try:
-        response = call_openrouter(summary_prompt)
+        response = call_openrouter(summary_prompt, st.session_state.get("current_model_slug"))
         new_summary = response.choices[0].message.content.strip()
         
         # Save back to campaign_state.json
@@ -186,6 +200,19 @@ with st.sidebar:
             st.write(f"• **{npc.get('name')}**: {npc.get('role')}")
 
     st.markdown("---")
+    st.header("🤖 AI Model Selection")
+    
+    selected_label = st.selectbox(
+        "Choose Game Master AI Model:",
+        options=list(MODEL_OPTIONS.keys()),
+        index=0,
+        help="Select your preferred AI model for narrative generation. If your choice is offline, the app automatically fails over to the next available free model."
+    )
+    
+    # Store the chosen OpenRouter slug in session state
+    st.session_state.current_model_slug = MODEL_OPTIONS[selected_label]
+
+    st.markdown("---")
     chat_exists = os.path.exists(SAVE_FILE)
     state_exists = os.path.exists("campaign_state.json")
 
@@ -212,7 +239,7 @@ with st.sidebar:
                     for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
                 ]
                 try:
-                    response = call_openrouter(api_messages)
+                    response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
                     reply = response.choices[0].message.content
                     st.session_state.messages.append({
                         "role": "assistant", 
@@ -363,7 +390,7 @@ for idx in range(start_idx, total_messages):
                         ]
                         
                         try:
-                            response = call_openrouter(api_messages)
+                            response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
                             reply = response.choices[0].message.content
                             st.session_state.messages.append({
                                 "role": "assistant", 
@@ -419,7 +446,7 @@ if user_input := st.chat_input("What do you do?"):
             ]
             
             try:
-                response = call_openrouter(api_messages)
+                response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
                 reply = response.choices[0].message.content
             except Exception as e:
                 st.error(f"Failed to generate response: {e}")
