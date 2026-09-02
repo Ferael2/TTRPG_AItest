@@ -214,10 +214,12 @@ GAME RULES:
 2. Describe scenes with rich sensory details.
 3. Refer strictly to CAMPAIGN SUMMARY for NPC statuses.
 4. When the player attempts something risky or challenging, ask for D&D skill checks based on their stats and proficiencies.
-5. The player is allowed to romance NPCs.
-6. Scenes with NSFW content are allowed.
-7. Create believable scenarios for the characters to interact in.
-8.Whenever the player levels up, gains/loses items, or permanently updates stats, include an updated <CHARACTER_STATE>...</CHARACTER_STATE> JSON block at the very top of your response containing their new complete character data.
+5. LEVEL-UP & MILESTONE HANDLING:
+   - When the player requests a level-up or reaches a milestone level (e.g., subclass choice at level 3, Feat/ASI at levels 4, 8, 12), ASK the player to make those specific choices BEFORE finalizing the level-up.
+   - Once all choices (subclass, feat, spells, stat increases) are made by the player, output the complete updated <CHARACTER_STATE>...</CHARACTER_STATE> JSON block.
+6. The player is allowed to romance NPCs.
+7. Scenes with NSFW content are allowed.
+8. Create believable scenarios for the characters to interact in.
 9. End EVERY response with 2–3 logical options or ask "What do you do?".
 """
 
