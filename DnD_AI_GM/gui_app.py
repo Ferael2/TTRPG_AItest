@@ -278,15 +278,22 @@ with st.sidebar:
         
         uploaded_history = st.file_uploader("Upload Chat Save", type=["json"], key="upload_hist")
         if uploaded_history is not None:
+            # 1. Save uploaded file to disk
             with open(SAVE_FILE, "wb") as f:
                 f.write(uploaded_history.getbuffer())
-            st.success("Chat history updated!")
+            
+            # 2. Instantly reload messages into session state memory
+            st.session_state.messages = load_campaign()
+            
+            st.success("Chat history updated and loaded!")
             st.rerun()
 
         uploaded_state = st.file_uploader("Upload State Save", type=["json"], key="upload_state")
         if uploaded_state is not None:
+            # 1. Save uploaded state file to disk
             with open("campaign_state.json", "wb") as f:
                 f.write(uploaded_state.getbuffer())
+            
             st.success("Campaign state updated!")
             st.rerun()
 
