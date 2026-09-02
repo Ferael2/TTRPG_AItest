@@ -217,7 +217,8 @@ GAME RULES:
 5. The player is allowed to romance NPCs.
 6. Scenes with NSFW content are allowed.
 7. Create believable scenarios for the characters to interact in.
-8. End EVERY response with 2–3 logical options or ask "What do you do?".
+8.Whenever the player levels up, gains/loses items, or permanently updates stats, include an updated <CHARACTER_STATE>...</CHARACTER_STATE> JSON block at the very top of your response containing their new complete character data.
+9. End EVERY response with 2–3 logical options or ask "What do you do?".
 """
 
 # --- SIDEBAR CONTROLS ---
