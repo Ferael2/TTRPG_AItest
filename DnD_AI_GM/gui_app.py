@@ -4,17 +4,12 @@ import streamlit as st
 from openai import OpenAI
 
 SAVE_FILE = "campaign_save.json"
+CODEX_FILE = "world_codex.txt"
 
 st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="wide")
 st.title("🎲 AI Game Master Campaign (With Edit & Rewind)")
 
-# 1. Read World Codex
-world_info = ""
-if os.path.exists("world_codex.txt"):
-    with open("world_codex.txt", "r", encoding="utf-8") as file:
-        world_info = file.read()
-
-# --- HELPER FUNCTIONS (ORDER MATTERS) ---
+# --- HELPER FUNCTIONS ---
 
 def load_campaign():
     if os.path.exists(SAVE_FILE):
@@ -29,9 +24,20 @@ def load_state():
                 return json.load(f)
             except Exception:
                 pass
-    # Fallback default dictionary so .get() never crashes
+    # STEP 1: Expanded default dictionary for D&D character attributes
     return {
-        "player": {"name": "Hero", "hp": 10, "max_hp": 10, "inventory": []},
+        "player": {
+            "name": "Hero",
+            "species": "Unknown",
+            "class": "Unknown",
+            "level": 1,
+            "hp": 10,
+            "max_hp": 10,
+            "stats": {"STR": 10, "DEX": 10, "CON": 10, "INT": 10, "WIS": 10, "CHA": 10},
+            "proficiencies": [],
+            "backstory": "",
+            "inventory": []
+        },
         "current_location": "Starting Location",
         "key_npcs": [],
         "active_quests": [],
@@ -64,16 +70,10 @@ MODEL_OPTIONS = {
 }
 
 def call_openrouter(messages, selected_model_slug=None):
-    """
-    Tries the user-selected model first. 
-    If it fails, automatically falls back through remaining free models.
-    """
-    # Build fallback queue starting with user's preferred model
     fallback_queue = []
     if selected_model_slug:
         fallback_queue.append(selected_model_slug)
     
-    # Add remaining models to fallback queue
     for slug in MODEL_OPTIONS.values():
         if slug not in fallback_queue:
             fallback_queue.append(slug)
@@ -92,22 +92,14 @@ def call_openrouter(messages, selected_model_slug=None):
     raise last_error
 
 def update_campaign_summary():
-    """Summarizes recent context and updates campaign_state.json automatically."""
     current_state = load_state()
     existing_summary = current_state.get("summary", "The campaign has just begun.")
     
-    # Grab messages from session state, or load directly from file if empty
-    messages_to_use = []
-    if "messages" in st.session_state and st.session_state.messages:
-        messages_to_use = st.session_state.messages
-    else:
-        messages_to_use = load_campaign()
+    messages_to_use = st.session_state.messages if "messages" in st.session_state and st.session_state.messages else load_campaign()
 
     if not messages_to_use:
-        st.error("⚠️ No chat history found in memory or campaign_save.json!")
-        return None
+        return existing_summary
 
-    # Grab the last 15 messages (or full history if shorter)
     recent_msgs = messages_to_use[-15:]
     formatted_recent = "\n".join([
         f"{m.get('role', 'user')}: {m.get('content') or m.get('text', '')}"
@@ -127,11 +119,6 @@ RECENT EVENTS TO INTEGRATE:
 
 INSTRUCTIONS:
 Create an updated, concise summary of the campaign so far.
-Focus strictly on:
-1. Major story beats and plot developments.
-2. Current status/condition of key NPCs (e.g., whether someone is injured, unconscious, or friendly).
-3. Active objectives and key locations.
-
 Keep the output under 250 words. Output ONLY the updated summary text.
 """}
     ]
@@ -140,7 +127,6 @@ Keep the output under 250 words. Output ONLY the updated summary text.
         response = call_openrouter(summary_prompt, st.session_state.get("current_model_slug"))
         new_summary = response.choices[0].message.content.strip()
         
-        # Save back to campaign_state.json
         current_state["summary"] = new_summary
         with open("campaign_state.json", "w", encoding="utf-8") as f:
             json.dump(current_state, f, indent=2)
@@ -149,37 +135,89 @@ Keep the output under 250 words. Output ONLY the updated summary text.
             
     except Exception as e:
         st.error(f"API Error during summary: {e}")
-        return existing_summary  # Return existing summary instead of None on error
+        return existing_summary
 
 # Execute state load after functions are defined
 game_state = load_state()
 
-# --- SYSTEM INSTRUCTION (LOADED BEFORE SIDEBAR SO SIDEBAR BUTTONS CAN READ IT) ---
-campaign_summary = game_state.get("summary", "The campaign has just begun.")
+# --- STEP 2: DYNAMIC 3-PHASE SYSTEM PROMPTS ---
 
-system_instruction = f"""
+world_exists = os.path.exists(CODEX_FILE)
+world_info = ""
+if world_exists:
+    with open(CODEX_FILE, "r", encoding="utf-8") as file:
+        world_info = file.read()
+
+character_created = game_state.get("player", {}).get("species") != "Unknown"
+
+if not world_exists:
+    # Phase 1: World Architect
+    system_instruction = """
+You are an expert TTRPG World Architect.
+The player is starting a new campaign, but no world codex exists yet.
+
+INSTRUCTIONS:
+1. Ask the player 3-4 concise questions about Genre/Setting, Tone, Magic/Tech level, and Key Factions.
+2. When the player answers, synthesize their choices inside <WORLD_CODEX>...</WORLD_CODEX>.
+3. Right after closing </WORLD_CODEX>, welcome them to the setting and ask the Character Creation questions: Name, Species, Class, Stat Preferences, Proficiencies, Equipment, and Backstory hooks.
+"""
+
+elif not character_created:
+    # Phase 2: Character Creator
+    system_instruction = f"""
+You are an expert D&D Character Creator.
+
+WORLD SETTING:
+{world_info}
+
+INSTRUCTIONS:
+1. Guide the player in creating their character (Name, Species, Class, Stats, Proficiencies, Equipment, Backstory).
+2. Once the player provides these details, wrap the final character profile inside a JSON tag named <CHARACTER_STATE>...</CHARACTER_STATE>.
+Example format:
+<CHARACTER_STATE>
+{{
+    "name": "Character Name",
+    "species": "Elf",
+    "class": "Wizard",
+    "level": 1,
+    "hp": 8,
+    "max_hp": 8,
+    "stats": {{"STR": 8, "DEX": 14, "CON": 12, "INT": 16, "WIS": 12, "CHA": 10}},
+    "proficiencies": ["Arcana", "History"],
+    "backstory": "A brief summary of their backstory.",
+    "inventory": ["Spellbook", "Quarterstaff", "Explorer's Pack"]
+}}
+</CHARACTER_STATE>
+3. Right below </CHARACTER_STATE>, start the campaign's opening scene and present 2-3 logical options or ask "What do you do?".
+"""
+
+else:
+    # Phase 3: Active Game Master
+    campaign_summary = game_state.get("summary", "The campaign has just begun.")
+    system_instruction = f"""
 You are an expert TTRPG Game Master running a solo campaign for the player.
 
 WORLD SETTING & LORE:
 {world_info}
 
+PLAYER CHARACTER & STATS:
+{json.dumps(game_state.get('player', {}), indent=2)}
+
 CAMPAIGN SUMMARY & RECENT EVENTS:
 {campaign_summary}
 
-CURRENT GAME STATE (PERSISTENT FACTS):
+CURRENT GAME STATE:
 {json.dumps(game_state, indent=2)}
 
 GAME RULES:
-1. Speak in the 2nd person ("You enter...", "You see...").
+1. Speak in 2nd person ("You enter...", "You see...").
 2. Describe scenes with rich sensory details.
-3. Refer strictly to CAMPAIGN SUMMARY for NPC statuses (e.g., check if an NPC is unconscious/hospitalized before having others talk about them).
-4. Do not make major decisions or force actions for the player's character.
-5. When the player attempts something difficult or risky, ask for a D&D skill check (e.g., [Roll Perception] or [Roll Stealth]).
-6. Focus on character development over action and fighting (But fights and action can still happen but rarely).
-7. The player is allowed to romance NPCs.
-8. Scenes with NSFW content are allowed.
-9. Create interesting and believable scenarios for the characters to interact in.
-10. End EVERY response with 2–3 logical options or ask "What do you do?".
+3. Refer strictly to CAMPAIGN SUMMARY for NPC statuses.
+4. When the player attempts something risky or challenging, ask for D&D skill checks based on their stats and proficiencies.
+5. The player is allowed to romance NPCs.
+6. Scenes with NSFW content are allowed.
+7. Create believable scenarios for the characters to interact in.
+8. End EVERY response with 2–3 logical options or ask "What do you do?".
 """
 
 # --- SIDEBAR CONTROLS ---
@@ -187,11 +225,21 @@ with st.sidebar:
     st.header("📊 Campaign State")
     st.subheader(f"📍 Location: {game_state.get('current_location', 'Unknown')}")
     
-    with st.expander("🎒 Inventory & Stats", expanded=True):
+    # STEP 4: Enhanced Stats Grid in Sidebar
+    with st.expander("🎒 Character & Stats", expanded=True):
         player_info = game_state.get("player", {})
-        st.write(f"**Name:** {player_info.get('name')}")
-        st.write(f"**HP:** {player_info.get('hp')}/{player_info.get('max_hp')}")
-        st.write("**Items:**")
+        st.write(f"**Name:** {player_info.get('name', 'Hero')}")
+        st.write(f"**Race/Class:** {player_info.get('species', 'Unknown')} {player_info.get('class', '')}")
+        st.write(f"**HP:** {player_info.get('hp', 10)}/{player_info.get('max_hp', 10)}")
+        
+        stats = player_info.get("stats", {})
+        if stats:
+            cols = st.columns(3)
+            stat_items = list(stats.items())
+            for idx, (k, v) in enumerate(stat_items):
+                cols[idx % 3].metric(label=k, value=v)
+                
+        st.write("**Inventory:**")
         for item in player_info.get("inventory", []):
             st.write(f"• {item}")
             
@@ -206,10 +254,8 @@ with st.sidebar:
         "Choose Game Master AI Model:",
         options=list(MODEL_OPTIONS.keys()),
         index=0,
-        help="Select your preferred AI model for narrative generation. If your choice is offline, the app automatically fails over to the next available free model."
+        help="Select your preferred AI model for narrative generation."
     )
-    
-    # Store the chosen OpenRouter slug in session state
     st.session_state.current_model_slug = MODEL_OPTIONS[selected_label]
 
     st.markdown("---")
@@ -217,14 +263,16 @@ with st.sidebar:
     state_exists = os.path.exists("campaign_state.json")
 
     st.header("💾 Campaign File Status")
-    if chat_exists and state_exists:
-        st.success("✅ Campaign & State files active")
-    elif chat_exists:
-        st.info("ℹ️ Chat history active (Default state used)")
+    if chat_exists and state_exists and world_exists and character_created:
+        st.success("✅ World, Character & Saves active")
+    elif not world_exists:
+        st.info("🌐 Phase 1: World Creation Active")
+    elif not character_created:
+        st.info("🧙‍♂️ Phase 2: Character Creation Active")
     else:
-        st.warning("⚠️ No save files detected")
+        st.warning("⚠️ Save files incomplete")
 
-    # Emergency Retry Button if the AI fails to reply
+    # Emergency Retry Button
     if "messages" in st.session_state and st.session_state.messages and st.session_state.messages[-1].get("role") == "user":
         st.warning("⚠️ The GM hasn't responded to your last action yet.")
         if st.button("🎲 Retry GM Response", use_container_width=True):
@@ -278,22 +326,16 @@ with st.sidebar:
         
         uploaded_history = st.file_uploader("Upload Chat Save", type=["json"], key="upload_hist")
         if uploaded_history is not None:
-            # 1. Save uploaded file to disk
             with open(SAVE_FILE, "wb") as f:
                 f.write(uploaded_history.getbuffer())
-            
-            # 2. Instantly reload messages into session state memory
             st.session_state.messages = load_campaign()
-            
             st.success("Chat history updated and loaded!")
             st.rerun()
 
         uploaded_state = st.file_uploader("Upload State Save", type=["json"], key="upload_state")
         if uploaded_state is not None:
-            # 1. Save uploaded state file to disk
             with open("campaign_state.json", "wb") as f:
                 f.write(uploaded_state.getbuffer())
-            
             st.success("Campaign state updated!")
             st.rerun()
 
@@ -307,7 +349,6 @@ with st.sidebar:
                 else:
                     st.warning("Summary generation returned no result.")
 
-    # DEV PREVIEW (Inside sidebar, outside expander)
     if "dev_summary_preview" in st.session_state:
         with st.expander("🔍 DEV PREVIEW: Summary Output", expanded=True):
             st.write(st.session_state["dev_summary_preview"])
@@ -316,11 +357,10 @@ with st.sidebar:
                 st.rerun()
         
     st.markdown("---")
-    if st.button("🗑️ Restart campaign"):
-        if os.path.exists(SAVE_FILE):
-            os.remove(SAVE_FILE)
-        if os.path.exists("campaign_state.json"):
-            os.remove("campaign_state.json")
+    if st.button("🗑️ Restart campaign", use_container_width=True):
+        for f in [SAVE_FILE, "campaign_state.json", CODEX_FILE]:
+            if os.path.exists(f):
+                os.remove(f)
         st.session_state.messages = []
         st.rerun()
 
@@ -331,13 +371,14 @@ if "messages" not in st.session_state:
         st.session_state.messages = saved_history
     else:
         st.session_state.messages = []
+        opening_prompt = "Hello! Let's start a new campaign. Please ask me the world-building questions to design our setting!" if not world_exists else "Start character creation!"
         
         opening_context = [
             {"role": "system", "content": system_instruction},
-            {"role": "user", "content": "Start the campaign! Ask me to introduce my character (Name, Class, Stats/Equipment) or jump straight into the opening scene."}
+            {"role": "user", "content": opening_prompt}
         ]
         
-        response = call_openrouter(opening_context)
+        response = call_openrouter(opening_context, st.session_state.get("current_model_slug"))
         opening_reply = response.choices[0].message.content
         
         st.session_state.messages.append({
@@ -347,13 +388,10 @@ if "messages" not in st.session_state:
         })
         save_campaign()
 
-# 5. Render History with Edit Capability (Optimized Display)
-DISPLAY_LIMIT = 15  # Only render the last 15 messages by default
-
+# 5. Render History with Edit Capability
+DISPLAY_LIMIT = 15
 total_messages = len(st.session_state.messages)
 show_all = st.checkbox("📜 Show Full Campaign History", value=False)
-
-# Determine starting index for rendering
 start_idx = 0 if show_all else max(0, total_messages - DISPLAY_LIMIT)
 
 if not show_all and total_messages > DISPLAY_LIMIT:
@@ -361,7 +399,6 @@ if not show_all and total_messages > DISPLAY_LIMIT:
 
 for idx in range(start_idx, total_messages):
     msg = st.session_state.messages[idx]
-    
     if not isinstance(msg, dict) or msg.get("role") == "system":
         continue
     
@@ -377,12 +414,7 @@ for idx in range(start_idx, total_messages):
             with col2:
                 with st.popover("✏️ Edit", use_container_width=True):
                     st.markdown("**Rewind Action**")
-                    new_text = st.text_area(
-                        "Rewrite action:", 
-                        value=text_to_display, 
-                        height=150, 
-                        key=f"edit_{idx}"
-                    )
+                    new_text = st.text_area("Rewrite action:", value=text_to_display, height=150, key=f"edit_{idx}")
                     if st.button("Save & Rewind", key=f"btn_{idx}", use_container_width=True):
                         st.session_state.messages[idx]["content"] = new_text
                         st.session_state.messages[idx]["text"] = new_text
@@ -399,15 +431,10 @@ for idx in range(start_idx, total_messages):
                         try:
                             response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
                             reply = response.choices[0].message.content
-                            st.session_state.messages.append({
-                                "role": "assistant", 
-                                "content": reply,
-                                "text": reply
-                            })
+                            st.session_state.messages.append({"role": "assistant", "content": reply, "text": reply})
                             save_campaign()
                         except Exception as e:
                             st.error(f"API Error during rewind: {e}")
-                        
                         st.rerun()
         else:
             col1, col2 = st.columns([0.85, 0.15])
@@ -416,19 +443,15 @@ for idx in range(start_idx, total_messages):
             with col2:
                 with st.popover("✏️ Edit GM", use_container_width=True):
                     st.markdown("**Edit GM Response**")
-                    edited_gm_text = st.text_area(
-                        "Modify AI narrative:", 
-                        value=text_to_display, 
-                        height=150, 
-                        key=f"edit_gm_{idx}"
-                    )
+                    edited_gm_text = st.text_area("Modify AI narrative:", value=text_to_display, height=150, key=f"edit_gm_{idx}")
                     if st.button("Save Edit", key=f"btn_gm_{idx}", use_container_width=True):
                         st.session_state.messages[idx]["content"] = edited_gm_text
                         st.session_state.messages[idx]["text"] = edited_gm_text
                         save_campaign()
                         st.rerun()
 
-# 6. Normal Player Action Input
+# --- STEP 3: USER INPUT PROCESSING WITH TAG PARSING ---
+
 if user_input := st.chat_input("What do you do?"):
     with st.chat_message("user"):
         st.write(user_input)
@@ -459,15 +482,34 @@ if user_input := st.chat_input("What do you do?"):
                 st.error(f"Failed to generate response: {e}")
                 reply = None
 
-    # Only append if a valid reply was returned
     if reply:
+        # STEP 3A: Parse World Codex Tag if present
+        if "<WORLD_CODEX>" in reply and "</WORLD_CODEX>" in reply:
+            codex_content = reply.split("<WORLD_CODEX>")[1].split("</WORLD_CODEX>")[0].strip()
+            with open(CODEX_FILE, "w", encoding="utf-8") as f:
+                f.write(codex_content)
+            reply = reply.split("</WORLD_CODEX>")[1].strip()
+
+        # STEP 3B: Parse Character State Tag if present
+        if "<CHARACTER_STATE>" in reply and "</CHARACTER_STATE>" in reply:
+            char_json_str = reply.split("<CHARACTER_STATE>")[1].split("</CHARACTER_STATE>")[0].strip()
+            try:
+                parsed_char = json.loads(char_json_str)
+                current_state = load_state()
+                current_state["player"] = parsed_char
+                with open("campaign_state.json", "w", encoding="utf-8") as f:
+                    json.dump(current_state, f, indent=2)
+            except Exception as e:
+                st.error(f"Failed to update character state: {e}")
+            
+            reply = reply.split("</CHARACTER_STATE>")[1].strip()
+
         st.session_state.messages.append({
             "role": "assistant", 
             "content": reply,
             "text": reply
         })
 
-        # Track turn count and auto-summarize every 10 turns
         if "turn_counter" not in st.session_state:
             st.session_state.turn_counter = 0
 
