@@ -192,25 +192,32 @@ You are an expert D&D Character Creator.
 WORLD SETTING:
 {world_info}
 
-CRITICAL INSTRUCTION:
-1. If the player chooses a spellcasting class, ask for their starting spell selections based on 5e rules.
-2. Calculate the character's initial AC (Armor Class) strictly based on their equipped starting armor, shield (if equipped), and Dexterity modifier according to 5e rules (e.g., Unarmored = 10 + DEX mod; Leather = 11 + DEX mod; Chain Mail = 16).
-3. Once all details are finalized, output a valid JSON block inside <CHARACTER_STATE>...</CHARACTER_STATE> tags.
+CRITICAL STEP-BY-STEP INSTRUCTION:
+1. If the player selects a spellcasting class (Sorcerer, Wizard, Cleric, Druid, Bard, Warlock), you MUST list available 5e Cantrips and Level 1 Spells for their class and ASK them to pick their starting spells FIRST.
+2. DO NOT output the <CHARACTER_STATE> tag until the player has explicitly chosen their spells.
+3. Once all details and spells are chosen, output the full JSON block inside <CHARACTER_STATE>...</CHARACTER_STATE> including "ac" and "spellcasting".
 
 Required Format:
 <CHARACTER_STATE>
 {{
-    "name": "Character Name",
-    "species": "Elf",
-    "class": "Wizard",
+    "name": "William Clark",
+    "species": "Vampire",
+    "class": "Sorcerer",
     "level": 1,
-    "hp": 8,
-    "max_hp": 8,
-    "ac": 13,
-    "stats": {{"STR": 8, "DEX": 16, "CON": 12, "INT": 16, "WIS": 12, "CHA": 10}},
-    "proficiencies": ["Arcana", "History"],
-    "backstory": "Character backstory summary...",
-    "inventory": ["Leather Armor", "Spellbook", "Quarterstaff"]
+    "hp": 7,
+    "max_hp": 7,
+    "ac": 15,
+    "stats": {{"STR": 8, "DEX": 16, "CON": 14, "INT": 12, "WIS": 10, "CHA": 16}},
+    "proficiencies": ["Persuasion", "Investigation"],
+    "backstory": "Character backstory...",
+    "inventory": ["Reinforced Coat", "Surgical Kit", "Umbrella"],
+    "spellcasting": {{
+        "cantrips": ["Fire Bolt", "Mage Hand", "Friends", "Prestidigitation"],
+        "prepared_spells": ["Shield", "Magic Missile"],
+        "spell_slots": {{
+            "level_1": {{"current": 2, "max": 2}}
+        }}
+    }}
 }}
 </CHARACTER_STATE>
 
@@ -469,7 +476,7 @@ for idx in range(start_idx, total_messages):
                     st.markdown("**Edit GM Response**")
                     edited_gm_text = st.text_area("Modify AI narrative:", value=text_to_display, height=150, key=f"edit_gm_{idx}")
                     if st.button("Save Edit", key=f"btn_gm_{idx}", use_container_width=True):
-                        # Re-parse tags if edited text includes tags
+                        # Parse and update character state if tags are present
                         if "<CHARACTER_STATE>" in edited_gm_text.upper() and "</CHARACTER_STATE>" in edited_gm_text.upper():
                             try:
                                 lower_txt = edited_gm_text.lower()
