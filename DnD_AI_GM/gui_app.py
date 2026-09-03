@@ -170,25 +170,26 @@ You are an expert D&D Character Creator.
 WORLD SETTING:
 {world_info}
 
-INSTRUCTIONS:
-1. Guide the player in creating their character (Name, Species, Class, Stats, Proficiencies, Equipment, Backstory).
-2. Once the player provides these details, wrap the final character profile inside a JSON tag named <CHARACTER_STATE>...</CHARACTER_STATE>.
-Example format:
+CRITICAL INSTRUCTION:
+Once the player provides their character details (Name, Species, Class, Stats, Backstory, Proficiencies, Inventory), you MUST generate a valid JSON block inside <CHARACTER_STATE>...</CHARACTER_STATE> tags as part of your response.
+
+Required Format:
 <CHARACTER_STATE>
 {{
-    "name": "Character Name",
-    "species": "Elf",
-    "class": "Wizard",
+    "name": "Felix Lloyd",
+    "species": "Vampire",
+    "class": "Sorcerer",
     "level": 1,
     "hp": 8,
     "max_hp": 8,
-    "stats": {{"STR": 8, "DEX": 14, "CON": 12, "INT": 16, "WIS": 12, "CHA": 10}},
-    "proficiencies": ["Arcana", "History"],
-    "backstory": "A brief summary of their backstory.",
-    "inventory": ["Spellbook", "Quarterstaff", "Explorer's Pack"]
+    "stats": {{"STR": 8, "DEX": 14, "CON": 12, "INT": 12, "WIS": 10, "CHA": 16}},
+    "proficiencies": ["Arcana", "Deception"],
+    "backstory": "Character backstory summary...",
+    "inventory": ["Staff", "Pouch"]
 }}
 </CHARACTER_STATE>
-3. Right below </CHARACTER_STATE>, start the campaign's opening scene and present 2-3 logical options or ask "What do you do?".
+
+Do not skip this tag. Right below </CHARACTER_STATE>, begin the campaign's opening scene and present 2-3 logical options or ask "What do you do?".
 """
 
 else:
@@ -494,18 +495,26 @@ if user_input := st.chat_input("What do you do?"):
             reply = reply.split("</WORLD_CODEX>")[1].strip()
 
         # STEP 3B: Parse Character State Tag if present
-        if "<CHARACTER_STATE>" in reply and "</CHARACTER_STATE>" in reply:
-            char_json_str = reply.split("<CHARACTER_STATE>")[1].split("</CHARACTER_STATE>")[0].strip()
+        if "<CHARACTER_STATE>" in reply.upper() and "</CHARACTER_STATE>" in reply.upper():
             try:
+                # Extract content between tags regardless of letter casing
+                lower_reply = reply.lower()
+                start_idx = lower_reply.find("<character_state>") + len("<character_state>")
+                end_idx = lower_reply.find("</character_state>")
+                char_json_str = reply[start_idx:end_idx].strip()
+
                 parsed_char = json.loads(char_json_str)
                 current_state = load_state()
                 current_state["player"] = parsed_char
+                
                 with open("campaign_state.json", "w", encoding="utf-8") as f:
                     json.dump(current_state, f, indent=2)
+                    
             except Exception as e:
-                st.error(f"Failed to update character state: {e}")
+                st.error(f"Failed to parse character state JSON: {e}")
             
-            reply = reply.split("</CHARACTER_STATE>")[1].strip()
+            # Clean reply text for chat display
+            reply = reply[end_idx + len("</character_state>"):].strip()
 
         st.session_state.messages.append({
             "role": "assistant", 
