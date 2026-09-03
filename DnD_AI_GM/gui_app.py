@@ -348,7 +348,11 @@ with st.sidebar:
 # --- INITIALIZE CAMPAIGN MEMORY ---
 
 if not campaign_data.get("messages"):
-    opening_prompt = "Hello! Let's start a new campaign. Please ask me the world-building questions to design our setting!" if not world_exists else "Start character creation!"
+    if not world_exists:
+        opening_prompt = "Greetings, World Architect! I am ready to build my new campaign setting. Please present me with the world-building questions to design our setting!"
+    else:
+        opening_prompt = "Greetings! I am ready for character creation. Please ask me for my character's details!"
+
     opening_context = [
         {"role": "system", "content": system_instruction},
         {"role": "user", "content": opening_prompt}
@@ -359,6 +363,7 @@ if not campaign_data.get("messages"):
     
     campaign_data["messages"].append({"role": "assistant", "content": opening_reply, "text": opening_reply})
     save_db_campaign(campaign_data)
+    st.rerun()
 
 # --- RESTORED: CHAT DISPLAY & EDIT/REWIND POP-OVERS ---
 
