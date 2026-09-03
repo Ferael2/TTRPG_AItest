@@ -192,12 +192,12 @@ You are an expert D&D Character Creator.
 WORLD SETTING:
 {world_info}
 
-CRITICAL STEP-BY-STEP INSTRUCTION:
-1. If the player selects a spellcasting class (Sorcerer, Wizard, Cleric, Druid, Bard, Warlock), you MUST list available 5e Cantrips and Level 1 Spells for their class and ASK them to pick their starting spells FIRST.
-2. DO NOT output the <CHARACTER_STATE> tag until the player has explicitly chosen their spells.
-3. Once all details and spells are chosen, output the full JSON block inside <CHARACTER_STATE>...</CHARACTER_STATE> including "ac" and "spellcasting".
+CRITICAL FORMATTING INSTRUCTIONS:
+1. If the player is a spellcaster, ask for their spell choices FIRST before outputting character state.
+2. YOU MUST WRAP THE JSON STRICTLY INSIDE <CHARACTER_STATE> AND </CHARACTER_STATE> TAGS.
+3. DO NOT USE MARKDOWN CODE BLOCKS (```json). OUTPUT THE RAW TAGS DIRECTLY IN TEXT.
 
-Required Format:
+Exact Required Output Format:
 <CHARACTER_STATE>
 {{
     "name": "William Clark",
@@ -210,9 +210,9 @@ Required Format:
     "stats": {{"STR": 8, "DEX": 16, "CON": 14, "INT": 12, "WIS": 10, "CHA": 16}},
     "proficiencies": ["Persuasion", "Investigation"],
     "backstory": "Character backstory...",
-    "inventory": ["Reinforced Coat", "Surgical Kit", "Umbrella"],
+    "inventory": ["Reinforced Coat", "Surgical Kit"],
     "spellcasting": {{
-        "cantrips": ["Fire Bolt", "Mage Hand", "Friends", "Prestidigitation"],
+        "cantrips": ["Fire bolt", "Mage hand", "Friends", "Prestidigitation"],
         "prepared_spells": ["Shield", "Magic Missile"],
         "spell_slots": {{
             "level_1": {{"current": 2, "max": 2}}
@@ -529,13 +529,21 @@ if user_input := st.chat_input("What do you do?"):
             reply = reply[e_idx + len("</world_codex>"):].strip()
 
         # Parse Character State Tag
+        # STEP 3B: Parse Character State Tag if present
         if "<CHARACTER_STATE>" in reply.upper() and "</CHARACTER_STATE>" in reply.upper():
             try:
                 lower_reply = reply.lower()
                 s_idx = lower_reply.find("<character_state>") + len("<character_state>")
                 e_idx = lower_reply.find("</character_state>")
                 char_json_str = reply[s_idx:e_idx].strip()
-                campaign_data["campaign_state"]["player"] = json.loads(char_json_str)
+                
+                # Remove markdown formatting if the model wrapped it in ```json
+                if char_json_str.startswith("```"):
+                    char_json_str = char_json_str.split("```")[1]
+                    if char_json_str.startswith("json"):
+                        char_json_str = char_json_str[4:]
+                
+                campaign_data["campaign_state"]["player"] = json.loads(char_json_str.strip())
             except Exception as e:
                 st.error(f"Failed to parse character state JSON: {e}")
             reply = reply[e_idx + len("</character_state>"):].strip()
