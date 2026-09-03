@@ -246,10 +246,6 @@ with st.sidebar:
         st.write("**Inventory:**")
         for item in player_info.get("inventory", []):
             st.write(f"• {item}")
-            
-    with st.expander("👥 Key NPCs"):
-        for npc in game_state.get("key_npcs", []):
-            st.write(f"• **{npc.get('name')}**: {npc.get('role')}")
 
     st.markdown("---")
     st.header("🤖 AI Model Selection")
@@ -303,7 +299,7 @@ with st.sidebar:
                 except Exception as e:
                     st.error(f"Retry failed: {e}")
 
-    with st.expander("⚙️ Manage Saves (Upload / Download)", expanded=not (chat_exists and state_exists)):
+    with st.expander("⚙️ Manage Saves (Upload / Download)", expanded=not (chat_exists and state_exists and world_exists)):
         st.subheader("📥 Downloads")
         if chat_exists:
             with open(SAVE_FILE, "r", encoding="utf-8") as f:
@@ -325,6 +321,16 @@ with st.sidebar:
                     use_container_width=True
                 )
 
+        if world_exists:
+            with open(CODEX_FILE, "r", encoding="utf-8") as f:
+                st.download_button(
+                    label="Download World Codex",
+                    data=f.read(),
+                    file_name="world_codex.txt",
+                    mime="text/plain",
+                    use_container_width=True
+                )
+
         st.markdown("---")
         st.subheader("📤 Upload / Replace Saves")
         
@@ -341,6 +347,13 @@ with st.sidebar:
             with open("campaign_state.json", "wb") as f:
                 f.write(uploaded_state.getbuffer())
             st.success("Campaign state updated!")
+            st.rerun()
+
+        uploaded_codex = st.file_uploader("Upload World Codex", type=["txt"], key="upload_codex")
+        if uploaded_codex is not None:
+            with open(CODEX_FILE, "wb") as f:
+                f.write(uploaded_codex.getbuffer())
+            st.success("World Codex updated!")
             st.rerun()
 
         st.markdown("---")
