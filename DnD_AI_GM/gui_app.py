@@ -47,10 +47,16 @@ DEFAULT_CAMPAIGN = {
             "level": 1,
             "hp": 10,
             "max_hp": 10,
+            "ac": 10,  # <-- Added default Armor Class
             "stats": {"STR": 10, "DEX": 10, "CON": 10, "INT": 10, "WIS": 10, "CHA": 10},
             "proficiencies": [],
             "backstory": "",
-            "inventory": []
+            "inventory": [],
+            "spellcasting": {
+                "cantrips": [],
+                "prepared_spells": [],
+                "spell_slots": {}
+            }
         },
         "current_location": "Starting Location",
         "key_npcs": [],
@@ -187,7 +193,9 @@ WORLD SETTING:
 {world_info}
 
 CRITICAL INSTRUCTION:
-Once the player provides their character details, you MUST generate a valid JSON block inside <CHARACTER_STATE>...</CHARACTER_STATE> tags.
+1. If the player chooses a spellcasting class, ask for their starting spell selections based on 5e rules.
+2. Calculate the character's initial AC (Armor Class) strictly based on their equipped starting armor, shield (if equipped), and Dexterity modifier according to 5e rules (e.g., Unarmored = 10 + DEX mod; Leather = 11 + DEX mod; Chain Mail = 16).
+3. Once all details are finalized, output a valid JSON block inside <CHARACTER_STATE>...</CHARACTER_STATE> tags.
 
 Required Format:
 <CHARACTER_STATE>
@@ -198,10 +206,11 @@ Required Format:
     "level": 1,
     "hp": 8,
     "max_hp": 8,
-    "stats": {{"STR": 8, "DEX": 14, "CON": 12, "INT": 16, "WIS": 12, "CHA": 10}},
+    "ac": 13,
+    "stats": {{"STR": 8, "DEX": 16, "CON": 12, "INT": 16, "WIS": 12, "CHA": 10}},
     "proficiencies": ["Arcana", "History"],
     "backstory": "Character backstory summary...",
-    "inventory": ["Spellbook", "Quarterstaff"]
+    "inventory": ["Leather Armor", "Spellbook", "Quarterstaff"]
 }}
 </CHARACTER_STATE>
 
@@ -231,12 +240,17 @@ GAME RULES:
 2. Describe scenes with rich sensory details.
 3. Refer strictly to CAMPAIGN SUMMARY for NPC statuses.
 4. When the player attempts something risky, ask for D&D skill checks based on their stats and proficiencies.
-5. LEVEL-UP & MILESTONE HANDLING:
-   - When the player requests a level-up or reaches a milestone level, ASK the player to make specific choices (subclass, feat, spells) BEFORE finalizing.
-   - Once all choices are made, output the updated <CHARACTER_STATE>...</CHARACTER_STATE> JSON block.
-6. The player is allowed to romance NPCs.
-7. Scenes with NSFW content are allowed.
-8. End EVERY response with 2–3 logical options or ask "What do you do?".
+5. LEVEL-UP, MULTICLASSING & SPELL SELECTION:
+   - When leveling up, gaining a spellcasting subclass (e.g., Arcane Trickster, Eldritch Knight), or multiclassing into a magic class, ASK the player to select their new allowed spells/cantrips BEFORE finalizing the level-up.
+   - Once all choices are made, output an updated <CHARACTER_STATE>...</CHARACTER_STATE> JSON block.
+6. ARMOR CLASS (AC) & EQUIPMENT TRACKING:
+   - Calculate and update "ac" inside <CHARACTER_STATE> whenever the player equips, dons, doffs, or acquires new armor, a shield, or magical equipment, or when their Dexterity modifier changes.
+7. GM-DRIVEN SPELL SLOT MANAGEMENT:
+   - When the player casts a leveled spell, deduct 1 slot from the corresponding slot level inside <CHARACTER_STATE> (e.g., reducing "level_1" "current" from 2 to 1).
+   - When the player takes a Long Rest (or sleeps/rests for 8 hours), fully restore all "current" spell slots back to their "max" values inside an updated <CHARACTER_STATE> block.
+8. The player is allowed to romance NPCs.
+9. Scenes with NSFW content are allowed.
+10. End EVERY response with 2–3 logical options or ask "What do you do?".
 """
 
 # --- SIDEBAR CONTROLS ---
@@ -249,7 +263,11 @@ with st.sidebar:
         player_info = game_state.get("player", {})
         st.write(f"**Name:** {player_info.get('name', 'Hero')}")
         st.write(f"**Race/Class:** {player_info.get('species', 'Unknown')} {player_info.get('class', '')}")
-        st.write(f"**HP:** {player_info.get('hp', 10)}/{player_info.get('max_hp', 10)}")
+        
+        # Displays HP and AC side by side
+        col1, col2 = st.columns(2)
+        col1.write(f"**HP:** {player_info.get('hp', 10)}/{player_info.get('max_hp', 10)}")
+        col2.write(f"**AC:** {player_info.get('ac', 10)}")
         
         stats = player_info.get("stats", {})
         if stats:
@@ -260,6 +278,36 @@ with st.sidebar:
         st.write("**Inventory:**")
         for item in player_info.get("inventory", []):
             st.write(f"• {item}")
+
+    with st.expander("✨ Spells & Spell Slots", expanded=False):
+        player_info = game_state.get("player", {})
+        spell_data = player_info.get("spellcasting", {})
+        
+        cantrips = spell_data.get("cantrips", [])
+        spells = spell_data.get("prepared_spells", [])
+        slots = spell_data.get("spell_slots", {})
+
+        if not cantrips and not spells and not slots:
+            st.info("No spellcasting capabilities active.")
+        else:
+            if slots:
+                st.write("**Spell Slots:**")
+                for slot_lvl, slot_info in slots.items():
+                    lvl_name = slot_lvl.replace("_", " ").title()
+                    cur = slot_info.get("current", 0)
+                    mx = slot_info.get("max", 0)
+                    st.write(f"• **{lvl_name}:** {cur}/{mx} remaining")
+                st.markdown("---")
+
+            if cantrips:
+                st.write("**Cantrips (At-Will):**")
+                for c in cantrips:
+                    st.write(f"• {c}")
+
+            if spells:
+                st.write("**Prepared / Known Spells:**")
+                for s in spells:
+                    st.write(f"• {s}")
 
     st.markdown("---")
     st.header("🤖 AI Model Selection")
