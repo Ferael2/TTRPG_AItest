@@ -494,111 +494,19 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (NATIVE HTML/JS COMPONENT) ---
+# --- ACTION INPUT PROCESSING (CLEAN & RELIABLE STREAMLIT NATIVE) ---
 
-# Initialize session state for user submission
-if "pending_user_input" not in st.session_state:
-    st.session_state.pending_user_input = None
+with st.form(key="chat_form", clear_on_submit=True):
+    user_input = st.text_area(
+        "What do you do?", 
+        height=80, 
+        key="user_action_input", 
+        placeholder="Type your action... (Shift+Enter for new line on mobile)",
+        label_visibility="collapsed"
+    )
+    submit_action = st.form_submit_button("➔ Send Action", use_container_width=True)
 
-# Custom HTML/JS Input Bar
-html_code = """
-<!DOCTYPE html>
-<html>
-<head>
-    <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-        }
-        body {
-            background-color: transparent;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-        }
-        .input-container {
-            position: relative;
-            width: 100%;
-            padding: 2px;
-        }
-        textarea {
-            width: 100%;
-            height: 60px;
-            background-color: #262730;
-            color: #ffffff;
-            border: 1px solid #41444c;
-            border-radius: 10px;
-            padding: 10px 50px 10px 12px;
-            font-size: 15px;
-            line-height: 1.4;
-            resize: none;
-            outline: none;
-            font-family: inherit;
-        }
-        textarea:focus {
-            border-color: #00c853;
-        }
-        textarea::placeholder {
-            color: #9094a6;
-        }
-        .send-btn {
-            position: absolute;
-            right: 10px;
-            bottom: 12px;
-            width: 34px;
-            height: 34px;
-            background-color: transparent;
-            border: 1px solid #00c853;
-            color: #00c853;
-            border-radius: 8px;
-            cursor: pointer;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 16px;
-            transition: all 0.2s ease;
-        }
-        .send-btn:hover {
-            background-color: #00c853;
-            color: #ffffff;
-        }
-    </style>
-</head>
-<body>
-    <div class="input-container">
-        <textarea id="actionInput" placeholder="Send a message..."></textarea>
-        <button class="send-btn" id="sendBtn">➔</button>
-    </div>
-
-    <script>
-        const textarea = document.getElementById('actionInput');
-        const sendBtn = document.getElementById('sendBtn');
-
-        function sendMessage() {
-            const text = textarea.value.trim();
-            if (text.length > 0) {
-                // Pass text back to Streamlit
-                window.parent.postMessage({
-                    type: 'streamlit:setComponentValue',
-                    value: text
-                }, '*');
-                textarea.value = '';
-            }
-        }
-
-        sendBtn.addEventListener('click', sendMessage);
-    </script>
-</body>
-</html>
-"""
-
-# Render HTML Component
-user_input_from_html = components.html(html_code, height=75)
-
-# Process Action Input
-if user_input_from_html and user_input_from_html != st.session_state.get("last_processed_input"):
-    st.session_state.last_processed_input = user_input_from_html
-    user_input = user_input_from_html
-
+if submit_action and user_input.strip():
     with st.chat_message("user"):
         st.write(user_input)
     
