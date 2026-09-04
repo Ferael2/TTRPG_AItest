@@ -496,19 +496,21 @@ for idx in range(start_idx, total_messages):
 
 # --- AUTO-SCROLL TO LATEST MESSAGE ---
 
-st.markdown("""
-    <div id="latest-message-anchor"></div>
+# Inject an invisible HTML component executing JS targeting the parent document
+components.html(
+    """
     <script>
         function scrollToBottom() {
-            var element = document.getElementById('latest-message-anchor');
-            if (element) {
-                element.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            var mainContainer = window.parent.document.querySelector('section.main');
+            if (mainContainer) {
+                mainContainer.scrollTop = mainContainer.scrollHeight;
             }
         }
-        // Run scroll on page render
-        setTimeout(scrollToBottom, 100);
+        setTimeout(scrollToBottom, 300);
     </script>
-""", unsafe_allow_html=True)
+    """,
+    height=0,
+)
 
 # --- ACTION INPUT PROCESSING (HEIGHT & CAPTION ADJUSTED) ---
 
