@@ -493,9 +493,18 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING ---
+# --- ACTION INPUT PROCESSING (MULTI-LINE MOBILE FRIENDLY) ---
 
-if user_input := st.chat_input("What do you do?"):
+with st.container():
+    user_input = st.text_area(
+        "What do you do?", 
+        height=100, 
+        key="user_action_input", 
+        placeholder="Type your action here... Use Enter for new lines."
+    )
+    submit_action = st.button("🎲 Send Action to GM", use_container_width=True)
+
+if submit_action and user_input.strip():
     with st.chat_message("user"):
         st.write(user_input)
     
@@ -529,7 +538,6 @@ if user_input := st.chat_input("What do you do?"):
             reply = reply[e_idx + len("</world_codex>"):].strip()
 
         # Parse Character State Tag
-        # STEP 3B: Parse Character State Tag if present
         if "<CHARACTER_STATE>" in reply.upper() and "</CHARACTER_STATE>" in reply.upper():
             try:
                 lower_reply = reply.lower()
@@ -537,7 +545,7 @@ if user_input := st.chat_input("What do you do?"):
                 e_idx = lower_reply.find("</character_state>")
                 char_json_str = reply[s_idx:e_idx].strip()
                 
-                # Remove markdown formatting if the model wrapped it in ```json
+                # Strip markdown code block formatting if present
                 if char_json_str.startswith("```"):
                     char_json_str = char_json_str.split("```")[1]
                     if char_json_str.startswith("json"):
@@ -550,7 +558,7 @@ if user_input := st.chat_input("What do you do?"):
 
         campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply})
         
-        # RESTORED: Turn Counter & Auto-Summarize Every 10 Turns
+        # Turn Counter & Auto-Summarize Every 10 Turns
         if "turn_counter" not in st.session_state:
             st.session_state.turn_counter = 0
 
