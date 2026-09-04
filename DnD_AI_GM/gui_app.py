@@ -1,4 +1,5 @@
 import json
+import re
 import streamlit as st
 import streamlit.components.v1 as components
 from openai import OpenAI
@@ -48,7 +49,7 @@ DEFAULT_CAMPAIGN = {
             "level": 1,
             "hp": 10,
             "max_hp": 10,
-            "ac": 10,  # <-- Added default Armor Class
+            "ac": 10,
             "stats": {"STR": 10, "DEX": 10, "CON": 10, "INT": 10, "WIS": 10, "CHA": 10},
             "proficiencies": [],
             "backstory": "",
@@ -92,6 +93,28 @@ def delete_db_campaign():
         supabase.table("campaigns").delete().eq("id", "default_campaign").execute()
     except Exception as e:
         st.error(f"Error resetting Supabase record: {e}")
+
+def process_and_strip_character_state(text, campaign_data):
+    """Parses <CHARACTER_STATE> JSON from text, updates campaign_data, and returns clean display text."""
+    pattern = r"<CHARACTER_STATE>(.*?)</CHARACTER_STATE>"
+    match = re.search(pattern, text, re.DOTALL | re.IGNORECASE)
+    
+    if match:
+        raw_json = match.group(1).strip()
+        if raw_json.startswith("```"):
+            raw_json = raw_json.split("```")[1]
+            if raw_json.lower().startswith("json"):
+                raw_json = raw_json[4:]
+        
+        try:
+            parsed_state = json.loads(raw_json.strip())
+            campaign_data["campaign_state"]["player"] = parsed_state
+        except Exception as e:
+            st.error(f"Failed to parse character state JSON: {e}")
+            
+        text = re.sub(pattern, "", text, flags=re.DOTALL | re.IGNORECASE).strip()
+        
+    return text
 
 # Initialize Session Data from Cloud DB
 if "campaign_data" not in st.session_state:
@@ -272,7 +295,6 @@ with st.sidebar:
         st.write(f"**Name:** {player_info.get('name', 'Hero')}")
         st.write(f"**Race/Class:** {player_info.get('species', 'Unknown')} {player_info.get('class', '')}")
         
-        # Displays HP and AC side by side
         col1, col2 = st.columns(2)
         col1.write(f"**HP:** {player_info.get('hp', 10)}/{player_info.get('max_hp', 10)}")
         col2.write(f"**AC:** {player_info.get('ac', 10)}")
@@ -335,7 +357,6 @@ with st.sidebar:
     else:
         st.info("🧙‍♂️ Phase 2: Character Creation Active")
 
-    # RESTORED: Emergency Retry Button
     messages_list = campaign_data.get("messages", [])
     if messages_list and messages_list[-1].get("role") == "user":
         st.warning("⚠️ The GM hasn't responded to your last action yet.")
@@ -380,7 +401,6 @@ with st.sidebar:
             st.rerun()
 
         st.markdown("---")
-        # RESTORED: Catch Up Summary Button
         if st.button("🔄 Catch Up Summary", use_container_width=True):
             with st.spinner("Summarizing campaign history..."):
                 result = update_campaign_summary()
@@ -421,7 +441,7 @@ if not campaign_data.get("messages"):
     save_db_campaign(campaign_data)
     st.rerun()
 
-# --- RESTORED: CHAT DISPLAY & EDIT/REWIND POP-OVERS ---
+# --- CHAT DISPLAY & EDIT/REWIND POP-OVERS ---
 
 DISPLAY_LIMIT = 15
 messages = campaign_data.get("messages", [])
@@ -476,21 +496,10 @@ for idx in range(start_idx, total_messages):
                 with st.popover("✏️ Edit GM", use_container_width=True):
                     st.markdown("**Edit GM Response**")
                     edited_gm_text = st.text_area("Modify AI narrative:", value=text_to_display, height=150, key=f"edit_gm_{idx}")
-                    if st.button("Save Edit", key=f"btn_gm_{idx}", use_container_width=True):
-                        # Parse and update character state if tags are present
-                        if "<CHARACTER_STATE>" in edited_gm_text.upper() and "</CHARACTER_STATE>" in edited_gm_text.upper():
-                            try:
-                                lower_txt = edited_gm_text.lower()
-                                s_idx = lower_txt.find("<character_state>") + len("<character_state>")
-                                e_idx = lower_txt.find("</character_state>")
-                                char_json_str = edited_gm_text[s_idx:e_idx].strip()
-                                campaign_data["campaign_state"]["player"] = json.loads(char_json_str)
-                                edited_gm_text = edited_gm_text[e_idx + len("</character_state>"):].strip()
-                            except Exception as e:
-                                st.error(f"Failed to parse character JSON in edit: {e}")
-
-                        campaign_data["messages"][idx]["content"] = edited_gm_text
-                        campaign_data["messages"][idx]["text"] = edited_gm_text
+                    if st.button("Save Edit", key=f"save_edit_{idx}"):
+                        edited_text = process_and_strip_character_state(edited_gm_text, campaign_data)
+                        campaign_data["messages"][idx]["content"] = edited_text
+                        campaign_data["messages"][idx]["text"] = edited_text
                         save_db_campaign(campaign_data)
                         st.rerun()
 
@@ -502,30 +511,23 @@ components.html(
         function forceScrollBottom() {
             try {
                 const parentDoc = window.parent.document;
-                
-                // Target all possible Streamlit scrollable containers
                 const selectors = [
                     '[data-testid="stMain"]',
                     '[data-testid="stAppViewContainer"]',
                     'section.main',
                     '.main'
                 ];
-                
                 selectors.forEach(selector => {
                     const el = parentDoc.querySelector(selector);
                     if (el) {
                         el.scrollTop = el.scrollHeight;
                     }
                 });
-
-                // Fallback: scroll window itself
                 window.parent.scrollTo(0, parentDoc.body.scrollHeight);
             } catch (e) {
                 console.log("Scroll error:", e);
             }
         }
-
-        // Execute immediately, then after rendering delays
         forceScrollBottom();
         setTimeout(forceScrollBottom, 100);
         setTimeout(forceScrollBottom, 500);
@@ -535,11 +537,10 @@ components.html(
     height=0,
 )
 
-# --- ACTION INPUT PROCESSING (HEIGHT & CAPTION ADJUSTED) ---
+# --- ACTION INPUT PROCESSING ---
 
 st.markdown("""
     <style>
-    /* Scope column styling strictly to the form inside the main app body */
     div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -548,33 +549,28 @@ st.markdown("""
         gap: 8px !important;
     }
 
-    /* Column 1 (Text Area) inside Form */
     div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(1) {
         flex: 1 1 auto !important;
         width: 85% !important;
         min-width: 0 !important;
     }
 
-    /* Column 2 (Submit Button) inside Form */
     div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(2) {
         flex: 0 0 48px !important;
         width: 48px !important;
         min-width: 48px !important;
     }
 
-    /* 1. INCREASE TEXT AREA HEIGHT */
     div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
-        min-height: 90px !important; /* Adjust height here (e.g., 90px - 120px) */
-        resize: vertical !important;  /* Allows manual dragging if desired */
+        min-height: 90px !important;
+        resize: vertical !important;
     }
 
-    /* 2. REMOVE "Press Ctrl+Enter to submit form" CAPTION */
     div[data-testid="stForm"] div[data-testid="stTextArea"] [data-testid="InputInstructions"] {
         display: none !important;
     }
 
-    /* Green arrow submit button styling */
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
         width: 48px !important;
         height: 48px !important;
@@ -597,6 +593,7 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
+
 with st.form(key="chat_form", clear_on_submit=True):
     col_text, col_btn = st.columns([0.88, 0.12])
     
@@ -639,36 +636,17 @@ if submit_action and user_input.strip():
                 reply = None
 
     if reply:
-        # Parse World Codex Tag
-        if "<WORLD_CODEX>" in reply.upper() and "</WORLD_CODEX>" in reply.upper():
-            lower_reply = reply.lower()
-            s_idx = lower_reply.find("<world_codex>") + len("<world_codex>")
-            e_idx = lower_reply.find("</world_codex>")
-            campaign_data["world_codex"] = reply[s_idx:e_idx].strip()
-            reply = reply[e_idx + len("</world_codex>"):].strip()
-
-        # Parse Character State Tag
-        if "<CHARACTER_STATE>" in reply.upper() and "</CHARACTER_STATE>" in reply.upper():
-            try:
-                lower_reply = reply.lower()
-                s_idx = lower_reply.find("<character_state>") + len("<character_state>")
-                e_idx = lower_reply.find("</character_state>")
-                char_json_str = reply[s_idx:e_idx].strip()
-                
-                # Strip markdown code block formatting if present
-                if char_json_str.startswith("```"):
-                    char_json_str = char_json_str.split("```")[1]
-                    if char_json_str.startswith("json"):
-                        char_json_str = char_json_str[4:]
-                
-                campaign_data["campaign_state"]["player"] = json.loads(char_json_str.strip())
-            except Exception as e:
-                st.error(f"Failed to parse character state JSON: {e}")
-            reply = reply[e_idx + len("</character_state>"):].strip()
+        reply = process_and_strip_character_state(reply, campaign_data)
+        
+        if "<WORLD_CODEX>" in reply.upper():
+            pattern_codex = r"<WORLD_CODEX>(.*?)</WORLD_CODEX>"
+            match_codex = re.search(pattern_codex, reply, re.DOTALL | re.IGNORECASE)
+            if match_codex:
+                campaign_data["world_codex"] = match_codex.group(1).strip()
+            reply = re.sub(pattern_codex, "", reply, flags=re.DOTALL | re.IGNORECASE).strip()
 
         campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply})
         
-        # Turn Counter & Auto-Summarize Every 10 Turns
         if "turn_counter" not in st.session_state:
             st.session_state.turn_counter = 0
 
