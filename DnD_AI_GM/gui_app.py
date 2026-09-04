@@ -494,12 +494,12 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (STABLE MOBILE SIDE-BY-SIDE) ---
+# --- ACTION INPUT PROCESSING (SCOPED CUSTOM CSS) ---
 
 st.markdown("""
     <style>
-    /* Force columns to stay in a horizontal row on all screen sizes */
-    [data-testid="stHorizontalBlock"] {
+    /* Scope column styling strictly to the form inside the main app body */
+    div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
@@ -507,29 +507,29 @@ st.markdown("""
         gap: 8px !important;
     }
 
-    /* Column 1: Text Area takes remaining space */
-    [data-testid="stHorizontalBlock"] > div:nth-child(1) {
+    /* Column 1 (Text Area) inside Form */
+    div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(1) {
         flex: 1 1 auto !important;
-        width: 100% !important;
+        width: 85% !important;
         min-width: 0 !important;
     }
 
-    /* Column 2: Button takes fixed width */
-    [data-testid="stHorizontalBlock"] > div:nth-child(2) {
+    /* Column 2 (Submit Button) inside Form */
+    div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(2) {
         flex: 0 0 48px !important;
         width: 48px !important;
         min-width: 48px !important;
     }
 
-    /* Style the text box */
-    div[data-testid="stTextArea"] textarea {
+    /* Input text area styling */
+    div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
         min-height: 48px !important;
         resize: none !important;
     }
 
     /* Green arrow submit button styling */
-    div[data-testid="stButton"] > button {
+    div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
         width: 48px !important;
         height: 48px !important;
         min-height: 48px !important;
@@ -545,27 +545,27 @@ st.markdown("""
         font-size: 18px !important;
     }
 
-    div[data-testid="stButton"] > button:hover {
+    div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button:hover {
         background-color: #00c853 !important;
         color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# Side-by-side Layout Container
-col_text, col_btn = st.columns([0.88, 0.12])
-
-with col_text:
-    user_input = st.text_area(
-        "What do you do?", 
-        height=48, 
-        key="user_action_input", 
-        placeholder="Send a message...",
-        label_visibility="collapsed"
-    )
-
-with col_btn:
-    submit_action = st.button("➔", key="send_action_btn")
+with st.form(key="chat_form", clear_on_submit=True):
+    col_text, col_btn = st.columns([0.88, 0.12])
+    
+    with col_text:
+        user_input = st.text_area(
+            "What do you do?", 
+            height=48, 
+            key="user_action_input", 
+            placeholder="Send a message...",
+            label_visibility="collapsed"
+        )
+    
+    with col_btn:
+        submit_action = st.form_submit_button("➔")
 
 if submit_action and user_input.strip():
     clean_user_input = str(user_input).strip()
