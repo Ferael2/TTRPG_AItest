@@ -494,7 +494,7 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (SCOPED CUSTOM CSS) ---
+# --- ACTION INPUT PROCESSING (HEIGHT & CAPTION ADJUSTED) ---
 
 st.markdown("""
     <style>
@@ -521,11 +521,16 @@ st.markdown("""
         min-width: 48px !important;
     }
 
-    /* Input text area styling */
+    /* 1. INCREASE TEXT AREA HEIGHT */
     div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
-        min-height: 48px !important;
-        resize: none !important;
+        min-height: 90px !important; /* Adjust height here (e.g., 90px - 120px) */
+        resize: vertical !important;  /* Allows manual dragging if desired */
+    }
+
+    /* 2. REMOVE "Press Ctrl+Enter to submit form" CAPTION */
+    div[data-testid="stForm"] div[data-testid="stTextArea"] [data-testid="InputInstructions"] {
+        display: none !important;
     }
 
     /* Green arrow submit button styling */
@@ -551,14 +556,13 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
 with st.form(key="chat_form", clear_on_submit=True):
     col_text, col_btn = st.columns([0.88, 0.12])
     
     with col_text:
         user_input = st.text_area(
             "What do you do?", 
-            height=48, 
+            height=90, 
             key="user_action_input", 
             placeholder="Send a message...",
             label_visibility="collapsed"
