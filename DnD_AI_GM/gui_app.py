@@ -493,59 +493,60 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (FORCE HORIZONTAL LAYOUT ON MOBILE) ---
+# --- ACTION INPUT PROCESSING (MOBILE HORIZONTAL FORCED LAYOUT) ---
 
 st.markdown("""
     <style>
-    /* Clean form wrapper with no extra borders */
+    /* Clean form container */
     div[data-testid="stForm"] {
         border: none !important;
         padding: 0 !important;
         background: transparent !important;
     }
 
-    /* Force columns to stay side-by-side on mobile devices instead of stacking vertically */
-    div[data-testid="stForm"] > div[data-testid="stHorizontalBlock"] {
+    /* Force horizontal flex container across all screen sizes */
+    .mobile-chat-container {
         display: flex !important;
         flex-direction: row !important;
-        flex-wrap: nowrap !important;
         align-items: flex-end !important;
         gap: 8px !important;
+        width: 100% !important;
     }
 
-    /* Column proportions on small screens */
-    div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(1) {
+    /* Override Streamlit column auto-stacking */
+    .mobile-chat-container div[data-testid="column"] {
+        width: auto !important;
+        min-width: unset !important;
+        flex-direction: column !important;
+    }
+
+    /* Text Area Column */
+    .mobile-chat-container div[data-testid="column"]:nth-of-type(1) {
         flex: 1 1 auto !important;
-        width: 85% !important;
-        min-width: 0 !important;
     }
 
-    div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(2) {
+    /* Button Column */
+    .mobile-chat-container div[data-testid="column"]:nth-of-type(2) {
         flex: 0 0 48px !important;
         width: 48px !important;
-        min-width: 48px !important;
-        display: flex !important;
-        align-items: flex-end !important;
-        justify-content: center !important;
     }
 
-    /* Input text area styling */
+    /* Style the text box */
     div[data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
         min-height: 48px !important;
         resize: none !important;
     }
 
-    /* Hide the 'Press Ctrl+Enter to submit form' caption on small screens to keep it clean */
+    /* Hide the 'Press Ctrl+Enter' instruction on mobile */
     @media (max-width: 768px) {
         div[data-testid="stTextArea"] [data-testid="InputInstructions"] {
             display: none !important;
         }
     }
 
-    /* Green arrow submit button styling */
+    /* Style the green arrow submit button */
     div[data-testid="stFormSubmitButton"] {
-        width: 100% !important;
         margin: 0 !important;
     }
 
@@ -573,6 +574,8 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.form(key="chat_form", clear_on_submit=True):
+    # Wrapper HTML div to bypass Streamlit's inline responsive column overrides
+    st.markdown('<div class="mobile-chat-container">', unsafe_allow_html=True)
     col_text, col_btn = st.columns([0.88, 0.12])
     
     with col_text:
@@ -586,6 +589,8 @@ with st.form(key="chat_form", clear_on_submit=True):
     
     with col_btn:
         submit_action = st.form_submit_button("➔")
+        
+    st.markdown('</div>', unsafe_allow_html=True)
 
 if submit_action and user_input.strip():
     with st.chat_message("user"):
