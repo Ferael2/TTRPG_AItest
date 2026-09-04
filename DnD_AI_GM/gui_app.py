@@ -493,16 +493,36 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (MULTI-LINE MOBILE FRIENDLY) ---
+# --- ACTION INPUT PROCESSING (COMPACT BOTTOM-RIGHT BUTTON) ---
 
-with st.container():
-    user_input = st.text_area(
-        "What do you do?", 
-        height=100, 
-        key="user_action_input", 
-        placeholder="Type your action here... Use Enter for new lines."
-    )
-    submit_action = st.button("🎲 Send Action to GM", use_container_width=True)
+# Custom CSS to align the button tightly to the bottom right of the text area
+st.markdown("""
+    <style>
+    div[data-testid="stForm"] {
+        border: none !important;
+        padding: 0 !important;
+    }
+    div[data-testid="column"]:nth-of-type(2) {
+        display: flex;
+        align-items: flex-end;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+with st.form(key="chat_form", clear_on_submit=True):
+    col_text, col_btn = st.columns([0.88, 0.12])
+    
+    with col_text:
+        user_input = st.text_area(
+            "What do you do?", 
+            height=100, 
+            key="user_action_input", 
+            placeholder="Type your action here... (Enter creates a new line)",
+            label_visibility="collapsed"
+        )
+    
+    with col_btn:
+        submit_action = st.form_submit_button("⬆️", use_container_width=True)
 
 if submit_action and user_input.strip():
     with st.chat_message("user"):
