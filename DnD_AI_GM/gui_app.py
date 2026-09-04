@@ -496,17 +496,40 @@ for idx in range(start_idx, total_messages):
 
 # --- AUTO-SCROLL TO LATEST MESSAGE ---
 
-# Inject an invisible HTML component executing JS targeting the parent document
 components.html(
     """
     <script>
-        function scrollToBottom() {
-            var mainContainer = window.parent.document.querySelector('section.main');
-            if (mainContainer) {
-                mainContainer.scrollTop = mainContainer.scrollHeight;
+        function forceScrollBottom() {
+            try {
+                const parentDoc = window.parent.document;
+                
+                // Target all possible Streamlit scrollable containers
+                const selectors = [
+                    '[data-testid="stMain"]',
+                    '[data-testid="stAppViewContainer"]',
+                    'section.main',
+                    '.main'
+                ];
+                
+                selectors.forEach(selector => {
+                    const el = parentDoc.querySelector(selector);
+                    if (el) {
+                        el.scrollTop = el.scrollHeight;
+                    }
+                });
+
+                // Fallback: scroll window itself
+                window.parent.scrollTo(0, parentDoc.body.scrollHeight);
+            } catch (e) {
+                console.log("Scroll error:", e);
             }
         }
-        setTimeout(scrollToBottom, 300);
+
+        // Execute immediately, then after rendering delays
+        forceScrollBottom();
+        setTimeout(forceScrollBottom, 100);
+        setTimeout(forceScrollBottom, 500);
+        setTimeout(forceScrollBottom, 1000);
     </script>
     """,
     height=0,
