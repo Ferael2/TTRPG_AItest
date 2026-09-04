@@ -493,36 +493,61 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (COMPACT BOTTOM-RIGHT BUTTON) ---
+# --- ACTION INPUT PROCESSING (NESTED INNER-BUTTON DESIGN) ---
 
-# Custom CSS to align the button tightly to the bottom right of the text area
+# Custom CSS to overlay the submit button INSIDE the bottom-right of the text area
 st.markdown("""
     <style>
+    /* Container wrapper styling */
     div[data-testid="stForm"] {
+        position: relative !important;
         border: none !important;
         padding: 0 !important;
+        background: transparent !important;
     }
-    div[data-testid="column"]:nth-of-type(2) {
-        display: flex;
-        align-items: flex-end;
+
+    /* Text Area styling: add right padding so text doesn't overlap the button */
+    div[data-testid="stForm"] textarea {
+        padding-right: 50px !important;
+        padding-bottom: 12px !important;
+        resize: vertical;
+    }
+
+    /* Position the Form Submit Button INSIDE the bottom-right corner */
+    div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] {
+        position: absolute !important;
+        bottom: 10px !important;
+        right: 10px !important;
+        z-index: 10 !important;
+        width: auto !important;
+    }
+
+    /* Style the arrow button to look clean and compact inside the box */
+    div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
+        width: 36px !important;
+        height: 36px !important;
+        padding: 0 !important;
+        border-radius: 8px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        margin: 0 !important;
+        background-color: var(--primary-color, #ff4b4b) !important;
+        color: white !important;
+        border: none !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
 with st.form(key="chat_form", clear_on_submit=True):
-    col_text, col_btn = st.columns([0.88, 0.12])
-    
-    with col_text:
-        user_input = st.text_area(
-            "What do you do?", 
-            height=100, 
-            key="user_action_input", 
-            placeholder="Type your action here... (Enter creates a new line)",
-            label_visibility="collapsed"
-        )
-    
-    with col_btn:
-        submit_action = st.form_submit_button("⬆️", use_container_width=True)
+    user_input = st.text_area(
+        "What do you do?", 
+        height=100, 
+        key="user_action_input", 
+        placeholder="Type your action here... (Enter creates a new line)",
+        label_visibility="collapsed"
+    )
+    submit_action = st.form_submit_button("⬆️")
 
 if submit_action and user_input.strip():
     with st.chat_message("user"):
