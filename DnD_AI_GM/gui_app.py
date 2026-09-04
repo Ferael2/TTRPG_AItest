@@ -494,23 +494,76 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (CLEAN & RELIABLE STREAMLIT NATIVE) ---
+# --- ACTION INPUT PROCESSING (CLEAN SIDE-BY-SIDE DESIGN) ---
+
+st.markdown("""
+    <style>
+    /* Clean form wrapper with no extra borders */
+    div[data-testid="stForm"] {
+        border: none !important;
+        padding: 0 !important;
+        background: transparent !important;
+    }
+
+    /* Align column contents to the bottom so the button sits aligned with the bottom of the input */
+    div[data-testid="column"] {
+        display: flex !important;
+        align-items: flex-end !important;
+    }
+
+    /* Input text area styling */
+    div[data-testid="stTextArea"] textarea {
+        border-radius: 10px !important;
+        min-height: 48px !important;
+        resize: none !important;
+    }
+
+    /* Green arrow submit button styling */
+    div[data-testid="stFormSubmitButton"] > button {
+        width: 48px !important;
+        height: 48px !important;
+        min-height: 48px !important;
+        border-radius: 10px !important;
+        padding: 0 !important;
+        margin: 0 !important;
+        background-color: transparent !important;
+        border: 1px solid #00c853 !important;
+        color: #00c853 !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: center !important;
+        font-size: 18px !important;
+    }
+
+    div[data-testid="stFormSubmitButton"] > button:hover {
+        background-color: #00c853 !important;
+        color: #ffffff !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
 with st.form(key="chat_form", clear_on_submit=True):
-    user_input = st.text_area(
-        "What do you do?", 
-        height=80, 
-        key="user_action_input", 
-        placeholder="Type your action... (Shift+Enter for new line on mobile)",
-        label_visibility="collapsed"
-    )
-    submit_action = st.form_submit_button("➔ Send Action", use_container_width=True)
+    col_text, col_btn = st.columns([0.92, 0.08])
+    
+    with col_text:
+        user_input = st.text_area(
+            "What do you do?", 
+            height=48, 
+            key="user_action_input", 
+            placeholder="Send a message...",
+            label_visibility="collapsed"
+        )
+    
+    with col_btn:
+        submit_action = st.form_submit_button("➔")
 
 if submit_action and user_input.strip():
-    with st.chat_message("user"):
-        st.write(user_input)
+    clean_user_input = str(user_input).strip()
     
-    campaign_data["messages"].append({"role": "user", "content": user_input, "text": user_input})
+    with st.chat_message("user"):
+        st.write(clean_user_input)
+    
+    campaign_data["messages"].append({"role": "user", "content": clean_user_input, "text": clean_user_input})
 
     with st.chat_message("assistant"):
         with st.spinner("The Game Master is thinking..."):
