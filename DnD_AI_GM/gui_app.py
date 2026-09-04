@@ -493,7 +493,7 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (CLEAN SIDE-BY-SIDE DESIGN) ---
+# --- ACTION INPUT PROCESSING (FORCE HORIZONTAL LAYOUT ON MOBILE) ---
 
 st.markdown("""
     <style>
@@ -504,10 +504,29 @@ st.markdown("""
         background: transparent !important;
     }
 
-    /* Align column contents to the bottom so the button sits aligned with the bottom of the input */
-    div[data-testid="column"] {
+    /* Force columns to stay side-by-side on mobile devices instead of stacking vertically */
+    div[data-testid="stForm"] > div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        align-items: flex-end !important;
+        gap: 8px !important;
+    }
+
+    /* Column proportions on small screens */
+    div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(1) {
+        flex: 1 1 auto !important;
+        width: 85% !important;
+        min-width: 0 !important;
+    }
+
+    div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(2) {
+        flex: 0 0 48px !important;
+        width: 48px !important;
+        min-width: 48px !important;
         display: flex !important;
         align-items: flex-end !important;
+        justify-content: center !important;
     }
 
     /* Input text area styling */
@@ -517,7 +536,19 @@ st.markdown("""
         resize: none !important;
     }
 
+    /* Hide the 'Press Ctrl+Enter to submit form' caption on small screens to keep it clean */
+    @media (max-width: 768px) {
+        div[data-testid="stTextArea"] [data-testid="InputInstructions"] {
+            display: none !important;
+        }
+    }
+
     /* Green arrow submit button styling */
+    div[data-testid="stFormSubmitButton"] {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+
     div[data-testid="stFormSubmitButton"] > button {
         width: 48px !important;
         height: 48px !important;
@@ -542,7 +573,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 with st.form(key="chat_form", clear_on_submit=True):
-    col_text, col_btn = st.columns([0.92, 0.08])
+    col_text, col_btn = st.columns([0.88, 0.12])
     
     with col_text:
         user_input = st.text_area(
