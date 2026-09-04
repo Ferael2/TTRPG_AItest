@@ -493,48 +493,68 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (NESTED INNER-BUTTON DESIGN) ---
+# --- ACTION INPUT PROCESSING (CLEAN INNER-BUTTON BAR) ---
 
-# Custom CSS to overlay the submit button INSIDE the bottom-right of the text area
+# Custom CSS targeting Streamlit's inner DOM structure
 st.markdown("""
     <style>
-    /* Container wrapper styling */
+    /* 1. Wrap the entire form into a relative flex container */
     div[data-testid="stForm"] {
         position: relative !important;
         border: none !important;
         padding: 0 !important;
         background: transparent !important;
+        width: 100% !important;
     }
 
-    /* Text Area styling: add right padding so text doesn't overlap the button */
+    /* 2. Target the exact text area wrapper */
+    div[data-testid="stForm"] div[data-testid="stTextArea"] {
+        width: 100% !important;
+    }
+
+    /* 3. Style the input box itself */
     div[data-testid="stForm"] textarea {
-        padding-right: 50px !important;
-        padding-bottom: 12px !important;
-        resize: vertical;
+        padding-right: 55px !important; /* Space for the button */
+        padding-top: 10px !important;
+        padding-bottom: 10px !important;
+        border-radius: 10px !important;
+        min-height: 48px !important;
+        max-height: 120px !important;
+        resize: none !important;
     }
 
-    /* Position the Form Submit Button INSIDE the bottom-right corner */
+    /* 4. Anchor the submit button div to the inner bottom-right corner */
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] {
         position: absolute !important;
-        bottom: 10px !important;
-        right: 10px !important;
-        z-index: 10 !important;
-        width: auto !important;
+        right: 8px !important;
+        bottom: 8px !important;
+        top: auto !important;
+        left: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        z-index: 99 !important;
     }
 
-    /* Style the arrow button to look clean and compact inside the box */
+    /* 5. Style the send button icon */
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
-        width: 36px !important;
-        height: 36px !important;
+        width: 32px !important;
+        height: 32px !important;
+        min-height: 32px !important;
+        border-radius: 6px !important;
         padding: 0 !important;
-        border-radius: 8px !important;
+        margin: 0 !important;
+        background-color: transparent !important;
+        border: 1px solid #00c853 !important;
+        color: #00c853 !important;
         display: flex !important;
         align-items: center !important;
         justify-content: center !important;
-        margin: 0 !important;
-        background-color: var(--primary-color, #ff4b4b) !important;
-        color: white !important;
-        border: none !important;
+        font-size: 16px !important;
+    }
+
+    div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button:hover {
+        background-color: #00c853 !important;
+        color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -542,12 +562,12 @@ st.markdown("""
 with st.form(key="chat_form", clear_on_submit=True):
     user_input = st.text_area(
         "What do you do?", 
-        height=100, 
+        height=48, 
         key="user_action_input", 
-        placeholder="Type your action here... (Enter creates a new line)",
+        placeholder="Send a message...",
         label_visibility="collapsed"
     )
-    submit_action = st.form_submit_button("⬆️")
+    submit_action = st.form_submit_button("➔")
 
 if submit_action and user_input.strip():
     with st.chat_message("user"):
