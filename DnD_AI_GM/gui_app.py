@@ -494,24 +494,34 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (CLEAN SIDE-BY-SIDE DESIGN) ---
+# --- ACTION INPUT PROCESSING (STABLE MOBILE SIDE-BY-SIDE) ---
 
 st.markdown("""
     <style>
-    /* Clean form wrapper with no extra borders */
-    div[data-testid="stForm"] {
-        border: none !important;
-        padding: 0 !important;
-        background: transparent !important;
-    }
-
-    /* Align column contents to the bottom so the button sits aligned with the bottom of the input */
-    div[data-testid="column"] {
+    /* Force columns to stay in a horizontal row on all screen sizes */
+    [data-testid="stHorizontalBlock"] {
         display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
         align-items: flex-end !important;
+        gap: 8px !important;
     }
 
-    /* Input text area styling */
+    /* Column 1: Text Area takes remaining space */
+    [data-testid="stHorizontalBlock"] > div:nth-child(1) {
+        flex: 1 1 auto !important;
+        width: 100% !important;
+        min-width: 0 !important;
+    }
+
+    /* Column 2: Button takes fixed width */
+    [data-testid="stHorizontalBlock"] > div:nth-child(2) {
+        flex: 0 0 48px !important;
+        width: 48px !important;
+        min-width: 48px !important;
+    }
+
+    /* Style the text box */
     div[data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
         min-height: 48px !important;
@@ -519,7 +529,7 @@ st.markdown("""
     }
 
     /* Green arrow submit button styling */
-    div[data-testid="stFormSubmitButton"] > button {
+    div[data-testid="stButton"] > button {
         width: 48px !important;
         height: 48px !important;
         min-height: 48px !important;
@@ -535,27 +545,27 @@ st.markdown("""
         font-size: 18px !important;
     }
 
-    div[data-testid="stFormSubmitButton"] > button:hover {
+    div[data-testid="stButton"] > button:hover {
         background-color: #00c853 !important;
         color: #ffffff !important;
     }
     </style>
 """, unsafe_allow_html=True)
 
-with st.form(key="chat_form", clear_on_submit=True):
-    col_text, col_btn = st.columns([0.92, 0.08])
-    
-    with col_text:
-        user_input = st.text_area(
-            "What do you do?", 
-            height=48, 
-            key="user_action_input", 
-            placeholder="Send a message...",
-            label_visibility="collapsed"
-        )
-    
-    with col_btn:
-        submit_action = st.form_submit_button("➔")
+# Side-by-side Layout Container
+col_text, col_btn = st.columns([0.88, 0.12])
+
+with col_text:
+    user_input = st.text_area(
+        "What do you do?", 
+        height=48, 
+        key="user_action_input", 
+        placeholder="Send a message...",
+        label_visibility="collapsed"
+    )
+
+with col_btn:
+    submit_action = st.button("➔", key="send_action_btn")
 
 if submit_action and user_input.strip():
     clean_user_input = str(user_input).strip()
