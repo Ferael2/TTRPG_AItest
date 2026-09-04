@@ -494,6 +494,22 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
+# --- AUTO-SCROLL TO LATEST MESSAGE ---
+
+st.markdown("""
+    <div id="latest-message-anchor"></div>
+    <script>
+        function scrollToBottom() {
+            var element = document.getElementById('latest-message-anchor');
+            if (element) {
+                element.scrollIntoView({ behavior: 'smooth', block: 'end' });
+            }
+        }
+        // Run scroll on page render
+        setTimeout(scrollToBottom, 100);
+    </script>
+""", unsafe_allow_html=True)
+
 # --- ACTION INPUT PROCESSING (HEIGHT & CAPTION ADJUSTED) ---
 
 st.markdown("""
