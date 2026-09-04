@@ -1,5 +1,6 @@
 import json
 import streamlit as st
+import streamlit.components.v1 as components
 from openai import OpenAI
 from supabase import create_client, Client
 
@@ -493,106 +494,111 @@ for idx in range(start_idx, total_messages):
                         save_db_campaign(campaign_data)
                         st.rerun()
 
-# --- ACTION INPUT PROCESSING (MOBILE HORIZONTAL FORCED LAYOUT) ---
+# --- ACTION INPUT PROCESSING (NATIVE HTML/JS COMPONENT) ---
 
-st.markdown("""
+# Initialize session state for user submission
+if "pending_user_input" not in st.session_state:
+    st.session_state.pending_user_input = None
+
+# Custom HTML/JS Input Bar
+html_code = """
+<!DOCTYPE html>
+<html>
+<head>
     <style>
-    /* Clean form container */
-    div[data-testid="stForm"] {
-        border: none !important;
-        padding: 0 !important;
-        background: transparent !important;
-    }
-
-    /* Force horizontal flex container across all screen sizes */
-    .mobile-chat-container {
-        display: flex !important;
-        flex-direction: row !important;
-        align-items: flex-end !important;
-        gap: 8px !important;
-        width: 100% !important;
-    }
-
-    /* Override Streamlit column auto-stacking */
-    .mobile-chat-container div[data-testid="column"] {
-        width: auto !important;
-        min-width: unset !important;
-        flex-direction: column !important;
-    }
-
-    /* Text Area Column */
-    .mobile-chat-container div[data-testid="column"]:nth-of-type(1) {
-        flex: 1 1 auto !important;
-    }
-
-    /* Button Column */
-    .mobile-chat-container div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 48px !important;
-        width: 48px !important;
-    }
-
-    /* Style the text box */
-    div[data-testid="stTextArea"] textarea {
-        border-radius: 10px !important;
-        min-height: 48px !important;
-        resize: none !important;
-    }
-
-    /* Hide the 'Press Ctrl+Enter' instruction on mobile */
-    @media (max-width: 768px) {
-        div[data-testid="stTextArea"] [data-testid="InputInstructions"] {
-            display: none !important;
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
         }
-    }
-
-    /* Style the green arrow submit button */
-    div[data-testid="stFormSubmitButton"] {
-        margin: 0 !important;
-    }
-
-    div[data-testid="stFormSubmitButton"] > button {
-        width: 48px !important;
-        height: 48px !important;
-        min-height: 48px !important;
-        border-radius: 10px !important;
-        padding: 0 !important;
-        margin: 0 !important;
-        background-color: transparent !important;
-        border: 1px solid #00c853 !important;
-        color: #00c853 !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: center !important;
-        font-size: 18px !important;
-    }
-
-    div[data-testid="stFormSubmitButton"] > button:hover {
-        background-color: #00c853 !important;
-        color: #ffffff !important;
-    }
+        body {
+            background-color: transparent;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        }
+        .input-container {
+            position: relative;
+            width: 100%;
+            padding: 2px;
+        }
+        textarea {
+            width: 100%;
+            height: 60px;
+            background-color: #262730;
+            color: #ffffff;
+            border: 1px solid #41444c;
+            border-radius: 10px;
+            padding: 10px 50px 10px 12px;
+            font-size: 15px;
+            line-height: 1.4;
+            resize: none;
+            outline: none;
+            font-family: inherit;
+        }
+        textarea:focus {
+            border-color: #00c853;
+        }
+        textarea::placeholder {
+            color: #9094a6;
+        }
+        .send-btn {
+            position: absolute;
+            right: 10px;
+            bottom: 12px;
+            width: 34px;
+            height: 34px;
+            background-color: transparent;
+            border: 1px solid #00c853;
+            color: #00c853;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            transition: all 0.2s ease;
+        }
+        .send-btn:hover {
+            background-color: #00c853;
+            color: #ffffff;
+        }
     </style>
-""", unsafe_allow_html=True)
+</head>
+<body>
+    <div class="input-container">
+        <textarea id="actionInput" placeholder="Send a message..."></textarea>
+        <button class="send-btn" id="sendBtn">➔</button>
+    </div>
 
-with st.form(key="chat_form", clear_on_submit=True):
-    # Wrapper HTML div to bypass Streamlit's inline responsive column overrides
-    st.markdown('<div class="mobile-chat-container">', unsafe_allow_html=True)
-    col_text, col_btn = st.columns([0.88, 0.12])
-    
-    with col_text:
-        user_input = st.text_area(
-            "What do you do?", 
-            height=48, 
-            key="user_action_input", 
-            placeholder="Send a message...",
-            label_visibility="collapsed"
-        )
-    
-    with col_btn:
-        submit_action = st.form_submit_button("➔")
-        
-    st.markdown('</div>', unsafe_allow_html=True)
+    <script>
+        const textarea = document.getElementById('actionInput');
+        const sendBtn = document.getElementById('sendBtn');
 
-if submit_action and user_input.strip():
+        function sendMessage() {
+            const text = textarea.value.trim();
+            if (text.length > 0) {
+                // Pass text back to Streamlit
+                window.parent.postMessage({
+                    type: 'streamlit:setComponentValue',
+                    value: text
+                }, '*');
+                textarea.value = '';
+            }
+        }
+
+        sendBtn.addEventListener('click', sendMessage);
+    </script>
+</body>
+</html>
+"""
+
+# Render HTML Component
+user_input_from_html = components.html(html_code, height=75)
+
+# Process Action Input
+if user_input_from_html and user_input_from_html != st.session_state.get("last_processed_input"):
+    st.session_state.last_processed_input = user_input_from_html
+    user_input = user_input_from_html
+
     with st.chat_message("user"):
         st.write(user_input)
     
