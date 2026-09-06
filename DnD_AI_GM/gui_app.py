@@ -32,9 +32,9 @@ if "client" not in st.session_state:
 
 MODEL_OPTIONS = {
     "🌐 OpenRouter Auto (Best Available)": "openrouter/free",
-    "🧠 Nemotron 120B (High Intelligence & Long Context)": "nvidia/nemotron-3-super-120b-a12b:free",
-    "🎨 Gemma 31B (Rich Narrative & Storytelling)": "google/gemma-4-31b-it:free",
-    "⚡ GPT-OSS 120B (Fast & Balanced)": "openai/gpt-oss-120b:free"
+    "🧠 Llama-3.3-70b (Excellent Instruction Following)": "meta-llama/llama-3.3-70b-instruct:free",
+    "🎨 Qwen-2.5-72b (Massive Context Window)": "qwen/qwen-2.5-72b-instruct:free",
+    "⚡ Deepseek-r1 (Narrative Coherence)": "deepseek/deepseek-r1:free"
 }
 
 # --- DEFAULT CAMPAIGN DATA STRUCTURE ---
@@ -362,15 +362,25 @@ with st.sidebar:
         st.warning("⚠️ The GM hasn't responded to your last action yet.")
         if st.button("🎲 Retry GM Response", use_container_width=True):
             with st.spinner("Retrying GM response..."):
-                MAX_HISTORY_TURNS = 12
+                MAX_HISTORY_TURNS = 8
                 recent_history = messages_list[-MAX_HISTORY_TURNS:]
-                api_messages = [{"role": "system", "content": system_instruction}] + [
-                    {
-                        "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
-                        "content": m.get("content") or m.get("text", "")
-                    } 
-                    for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
-                ]
+
+                reminder_prompt = {
+                    "role": "system",
+                    "content": "REMINDER: Always write in 2nd person ('You...'). Maintain strict continuity with the current scene. Do not shift location or perspective abruptly."
+                }
+                
+                api_messages = (
+                    [{"role": "system", "content": system_instruction}] 
+                    + [
+                        {
+                            "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
+                            "content": m.get("content") or m.get("text", "")
+                        } 
+                        for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
+                    ]
+                    + [reminder_prompt]
+                )
                 try:
                     response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
                     reply = response.choices[0].message.content
@@ -471,14 +481,26 @@ for idx in range(start_idx, total_messages):
                         campaign_data["messages"][idx]["content"] = new_text
                         campaign_data["messages"][idx]["text"] = new_text
                         campaign_data["messages"] = campaign_data["messages"][:idx + 1]
+
+                        MAX_HISTORY_TURNS = 8
+                        recent_history = campaign_data["messages"][-MAX_HISTORY_TURNS:]
+
+                        reminder_prompt = {
+                            "role": "system",
+                            "content": "REMINDER: Always write in 2nd person ('You...'). Maintain strict continuity with the current scene. Do not shift location or perspective abruptly."
+                        }
                         
-                        api_messages = [{"role": "system", "content": system_instruction}] + [
-                            {
-                                "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
-                                "content": m.get("content") or m.get("text", "")
-                            } 
-                            for m in campaign_data["messages"] if isinstance(m, dict) and m.get("role") != "system"
-                        ]
+                        api_messages = (
+                            [{"role": "system", "content": system_instruction}] 
+                            + [
+                                {
+                                    "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
+                                    "content": m.get("content") or m.get("text", "")
+                                } 
+                                for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
+                            ]
+                            + [reminder_prompt]
+                        )
                         
                         try:
                             response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
@@ -572,9 +594,9 @@ st.markdown("""
     }
 
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
-        width: 48px !important;
-        height: 48px !important;
-        min-height: 48px !important;
+        width: 35px !important;
+        height: 35px !important;
+        min-height: 35px !important;
         border-radius: 10px !important;
         padding: 0 !important;
         margin: 0 !important;
@@ -619,14 +641,25 @@ if submit_action and user_input.strip():
 
     with st.chat_message("assistant"):
         with st.spinner("The Game Master is thinking..."):
-            recent_history = campaign_data["messages"][-12:]
-            api_messages = [{"role": "system", "content": system_instruction}] + [
-                {
-                    "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
-                    "content": m.get("content") or m.get("text", "")
-                } 
-                for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
-            ]
+            MAX_HISTORY_TURNS = 8
+            recent_history = campaign_data["messages"][-MAX_HISTORY_TURNS:]
+            
+            reminder_prompt = {
+                "role": "system",
+                "content": "REMINDER: Always write in 2nd person ('You...'). Maintain strict continuity with the current scene. Do not shift location or perspective abruptly."
+            }
+
+            api_messages = (
+                [{"role": "system", "content": system_instruction}] 
+                + [
+                    {
+                        "role": "assistant" if m.get("role") in ["assistant", "model"] else "user", 
+                        "content": m.get("content") or m.get("text", "")
+                    } 
+                    for m in recent_history if isinstance(m, dict) and m.get("role") != "system"
+                ]
+                + [reminder_prompt]
+            )
             
             try:
                 response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
