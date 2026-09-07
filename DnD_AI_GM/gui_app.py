@@ -31,10 +31,10 @@ if "client" not in st.session_state:
     )
 
 MODEL_OPTIONS = {
-    "🌐 OpenRouter Auto (Best Available)": "openrouter/free",
-    "🧠 Llama-3.3-70b (Excellent Instruction Following)": "meta-llama/llama-3.3-70b-instruct:free",
-    "🎨 Qwen-2.5-72b (Massive Context Window)": "qwen/qwen-2.5-72b-instruct:free",
-    "⚡ Deepseek-r1 (Narrative Coherence)": "deepseek/deepseek-r1:free"
+    "🧠 Meta Llama 3.3 70B (Best Instruction & Detail)": "meta-llama/llama-3.3-70b-instruct:free",
+    "🎨 Qwen 2.5 72B (Rich World & Long Context)": "qwen/qwen-2.5-72b-instruct:free",
+    "⚡ DeepSeek R1 (High Reasoning & Depth)": "deepseek/deepseek-r1:free",
+    "🌐 OpenRouter Auto (Fallback)": "openrouter/free"
 }
 
 # --- DEFAULT CAMPAIGN DATA STRUCTURE ---
@@ -268,17 +268,17 @@ CURRENT GAME STATE:
 
 GAME RULES:
 1. Speak in 2nd person ("You enter...", "You see...").
-2. Describe scenes with rich sensory details.
+2. Describe scenes with rich sensory details and immersive prose (aim for 3–4 descriptive paragraphs per response).
 3. Refer strictly to CAMPAIGN SUMMARY for NPC statuses.
 4. When the player attempts something risky, ask for D&D skill checks based on their stats and proficiencies.
 5. LEVEL-UP, MULTICLASSING & SPELL SELECTION:
-   - When leveling up, gaining a spellcasting subclass (e.g., Arcane Trickster, Eldritch Knight), or multiclassing into a magic class, ASK the player to select their new allowed spells/cantrips BEFORE finalizing the level-up.
-   - Once all choices are made, output an updated <CHARACTER_STATE>...</CHARACTER_STATE> JSON block.
+   - When the player levels up or chooses new spells/features, YOU MUST IMMEDIATELY OUTPUT AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON BLOCK containing the updated "level", "hp", "max_hp", "spellcasting", and "features".
+   - Never acknowledge a level-up or new spells in narrative without emitting the <CHARACTER_STATE> block.
 6. ARMOR CLASS (AC) & EQUIPMENT TRACKING:
    - Calculate and update "ac" inside <CHARACTER_STATE> whenever the player equips, dons, doffs, or acquires new armor, a shield, or magical equipment, or when their Dexterity modifier changes.
 7. GM-DRIVEN SPELL SLOT MANAGEMENT:
-   - When the player casts a leveled spell, deduct 1 slot from the corresponding slot level inside <CHARACTER_STATE> (e.g., reducing "level_1" "current" from 2 to 1).
-   - When the player takes a Long Rest (or sleeps/rests for 8 hours), fully restore all "current" spell slots back to their "max" values inside an updated <CHARACTER_STATE> block.
+   - When the player casts a leveled spell or consumes resources (e.g. spell slots, sorcery points), YOU MUST ALWAYS EMIT AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON BLOCK.
+   - Do NOT simply write state changes as markdown bullet points. You must output the full <CHARACTER_STATE> JSON block so the sidebar updates automatically.
 8. The player is allowed to romance NPCs.
 9. Scenes with NSFW content are allowed.
 10. End EVERY response with 2–3 logical options or ask "What do you do?".
@@ -594,9 +594,9 @@ st.markdown("""
     }
 
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
-        width: 35px !important;
-        height: 35px !important;
-        min-height: 35px !important;
+        width: 30px !important;
+        height: 30px !important;
+        min-height: 30px !important;
         border-radius: 10px !important;
         padding: 0 !important;
         margin: 0 !important;
