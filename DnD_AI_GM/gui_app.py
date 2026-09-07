@@ -559,19 +559,44 @@ components.html(
     height=0,
 )
 
-# --- ACTION INPUT PROCESSING (MOBILE OVERFLOW FIXED) ---
+# --- GLOBAL MOBILE RESET & ACTION INPUT CSS ---
 
 st.markdown("""
     <style>
-    /* Prevent horizontal page scrolling on mobile */
-    .main .block-container {
-        padding-left: 1rem !important;
-        padding-right: 1rem !important;
-        max-width: 100% !important;
+    /* 1. FORCE VIEWPORT & CONTAINER TO FIT MOBILE SCREENS EXACTLY */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+        max-width: 100vw !important;
         overflow-x: hidden !important;
     }
 
-    /* Form flex layout without forced percentage width */
+    .main .block-container {
+        max-width: 100% !important;
+        padding-left: 0.8rem !important;
+        padding-right: 0.8rem !important;
+        padding-top: 1rem !important;
+    }
+
+    /* 2. PREVENT CHAT ROW COLUMNS FROM OVERFLOWING */
+    [data-testid="stChatMessage"] div[data-testid="stHorizontalBlock"] {
+        display: flex !important;
+        flex-direction: row !important;
+        flex-wrap: nowrap !important;
+        width: 100% !important;
+    }
+
+    /* Message narrative column */
+    [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(1) {
+        flex: 1 1 auto !important;
+        min-width: 0 !important;
+    }
+
+    /* Popover edit button column */
+    [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) {
+        flex: 0 0 70px !important;
+        min-width: 70px !important;
+    }
+
+    /* 3. INPUT FORM FLEXBOX RESET */
     div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -581,20 +606,17 @@ st.markdown("""
         width: 100% !important;
     }
 
-    /* Column 1 (Text Area) takes remaining flex space */
     div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(1) {
         flex: 1 1 0 !important;
         min-width: 0 !important;
     }
 
-    /* Column 2 (Submit Button) fixed square width */
     div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(2) {
         flex: 0 0 48px !important;
         width: 48px !important;
         min-width: 48px !important;
     }
 
-    /* Text area sizing */
     div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
         min-height: 90px !important;
@@ -602,16 +624,14 @@ st.markdown("""
         width: 100% !important;
     }
 
-    /* Hide submit hint caption */
     div[data-testid="stForm"] div[data-testid="stTextArea"] [data-testid="InputInstructions"] {
         display: none !important;
     }
 
-    /* Submit button styling */
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
-        width: 29px !important;
-        height: 29px !important;
-        min-height: 29px !important;
+        width: 48px !important;
+        height: 48px !important;
+        min-height: 48px !important;
         border-radius: 10px !important;
         padding: 0 !important;
         margin: 0 !important;
@@ -630,7 +650,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
 with st.form(key="chat_form", clear_on_submit=True):
     col_text, col_btn = st.columns([0.88, 0.12])
     
