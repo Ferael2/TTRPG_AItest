@@ -573,8 +573,6 @@ components.html(
 
 st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="wide")
 
-# --- RESPONSIVE CSS (CLEAN PC & MOBILE) ---
-
 # --- RESPONSIVE CSS & MOBILE POP-OVER FIX ---
 
 st.markdown("""
@@ -586,7 +584,7 @@ st.markdown("""
         max-width: 100% !important;
     }
 
-    /* CHAT ROW COLUMNS */
+    /* CHAT ROW FLEXBOX (DESKTOP) */
     [data-testid="stChatMessage"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -595,43 +593,52 @@ st.markdown("""
         gap: 8px !important;
     }
 
+    /* Message narrative column */
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(1) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
     }
 
-    /* Column 2: Edit Button Container */
+    /* Edit Button Column (Desktop) */
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 85px !important;
-        min-width: 85px !important;
+        flex: 0 0 95px !important;
+        min-width: 95px !important;
     }
 
     /* Popover Button Styling */
-    [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) button {
+    [data-testid="stChatMessage"] div[data-testid="stPopover"] > button {
         width: 100% !important;
-        padding-left: 2px !important;
-        padding-right: 2px !important;
+        padding: 4px 6px !important;
         font-size: 13px !important;
         white-space: nowrap !important;
+        border-radius: 8px !important;
     }
 
     /* MOBILE SPECIFIC ADJUSTMENTS (< 768px) */
     @media (max-width: 768px) {
-        html, body, [data-testid="stAppViewContainer"], .main, .block-container {
-            overflow-x: hidden !important;
-            padding-left: 0.4rem !important;
-            padding-right: 0.4rem !important;
+        /* Switch chat row to stacked layout on mobile */
+        [data-testid="stChatMessage"] div[data-testid="stHorizontalBlock"] {
+            flex-direction: column !important;
+            align-items: flex-start !important;
+            gap: 6px !important;
         }
 
-        /* Allow edit button column slightly more breathing room on mobile */
+        /* Narrative takes 100% width */
+        [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(1) {
+            width: 100% !important;
+        }
+
+        /* Edit button sits cleanly beneath text with full visibility */
         [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) {
-            flex: 0 0 78px !important;
-            min-width: 78px !important;
+            width: auto !important;
+            flex: none !important;
+            min-width: 0 !important;
+            margin-top: 4px !important;
         }
 
-        [data-testid="stChatMessage"] {
-            word-break: break-word !important;
-            overflow-wrap: anywhere !important;
+        [data-testid="stChatMessage"] div[data-testid="stPopover"] > button {
+            padding: 4px 10px !important;
+            font-size: 12px !important;
         }
     }
 
