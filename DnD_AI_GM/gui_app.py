@@ -594,9 +594,9 @@ st.markdown("""
     }
 
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
-        width: 30px !important;
-        height: 30px !important;
-        min-height: 30px !important;
+        width: 29px !important;
+        height: 29px !important;
+        min-height: 29px !important;
         border-radius: 10px !important;
         padding: 0 !important;
         margin: 0 !important;
