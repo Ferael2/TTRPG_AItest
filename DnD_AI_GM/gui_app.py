@@ -559,40 +559,55 @@ components.html(
     height=0,
 )
 
-# --- ACTION INPUT PROCESSING ---
+# --- ACTION INPUT PROCESSING (MOBILE OVERFLOW FIXED) ---
 
 st.markdown("""
     <style>
+    /* Prevent horizontal page scrolling on mobile */
+    .main .block-container {
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
+    /* Form flex layout without forced percentage width */
     div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: flex-end !important;
         gap: 8px !important;
+        width: 100% !important;
     }
 
+    /* Column 1 (Text Area) takes remaining flex space */
     div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(1) {
-        flex: 1 1 auto !important;
-        width: 85% !important;
+        flex: 1 1 0 !important;
         min-width: 0 !important;
     }
 
+    /* Column 2 (Submit Button) fixed square width */
     div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(2) {
         flex: 0 0 48px !important;
         width: 48px !important;
         min-width: 48px !important;
     }
 
+    /* Text area sizing */
     div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
         border-radius: 10px !important;
         min-height: 90px !important;
         resize: vertical !important;
+        width: 100% !important;
     }
 
+    /* Hide submit hint caption */
     div[data-testid="stForm"] div[data-testid="stTextArea"] [data-testid="InputInstructions"] {
         display: none !important;
     }
 
+    /* Submit button styling */
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
         width: 29px !important;
         height: 29px !important;
