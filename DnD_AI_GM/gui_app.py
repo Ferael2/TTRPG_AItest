@@ -527,17 +527,26 @@ for idx in range(start_idx, total_messages):
 
 # --- AUTO-SCROLL TO LATEST MESSAGE ---
 
+st.markdown("<div id='bottom-scroll-anchor'></div>", unsafe_allow_html=True)
+
 components.html(
     """
     <script>
-        function forceScrollBottom() {
+        function scrollToBottom() {
             try {
                 const parentDoc = window.parent.document;
+                
+                // 1. Target bottom anchor element
+                const anchor = parentDoc.getElementById('bottom-scroll-anchor');
+                if (anchor) {
+                    anchor.scrollIntoView({ behavior: 'smooth', block: 'end' });
+                }
+
+                // 2. Fallback: Scroll container targets
                 const selectors = [
                     '[data-testid="stMain"]',
                     '[data-testid="stAppViewContainer"]',
-                    'section.main',
-                    '.main'
+                    'section.main'
                 ];
                 selectors.forEach(selector => {
                     const el = parentDoc.querySelector(selector);
@@ -545,15 +554,16 @@ components.html(
                         el.scrollTop = el.scrollHeight;
                     }
                 });
-                window.parent.scrollTo(0, parentDoc.body.scrollHeight);
             } catch (e) {
                 console.log("Scroll error:", e);
             }
         }
-        forceScrollBottom();
-        setTimeout(forceScrollBottom, 100);
-        setTimeout(forceScrollBottom, 500);
-        setTimeout(forceScrollBottom, 1000);
+
+        // Trigger execution immediately and staggered for mobile browser layout renders
+        scrollToBottom();
+        setTimeout(scrollToBottom, 150);
+        setTimeout(scrollToBottom, 400);
+        setTimeout(scrollToBottom, 800);
     </script>
     """,
     height=0,
@@ -565,34 +575,15 @@ st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="wi
 
 # --- RESPONSIVE CSS (CLEAN PC & MOBILE) ---
 
+# --- RESPONSIVE CSS & MOBILE POP-OVER FIX ---
+
 st.markdown("""
     <style>
     /* DESKTOP & GLOBAL LAYOUT RESET */
     .main .block-container {
         padding-top: 2rem !important;
-        padding-bottom: 5rem !important;
+        padding-bottom: 6rem !important;
         max-width: 100% !important;
-    }
-
-    /* MOBILE-ONLY OVERRIDES (< 768px) */
-    @media (max-width: 768px) {
-        /* Remove horizontal overflow on phone viewports */
-        html, body, [data-testid="stAppViewContainer"], .main, .block-container {
-            overflow-x: hidden !important;
-            padding-left: 0.5rem !important;
-            padding-right: 0.5rem !important;
-        }
-
-        /* Prevent text from clipping behind open sidebar */
-        [data-testid="stSidebar"] {
-            z-index: 99999 !important;
-        }
-
-        /* Allow long continuous strings/code blocks to wrap on mobile */
-        [data-testid="stChatMessage"] {
-            word-break: break-word !important;
-            overflow-wrap: anywhere !important;
-        }
     }
 
     /* CHAT ROW COLUMNS */
@@ -601,6 +592,7 @@ st.markdown("""
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         width: 100% !important;
+        gap: 8px !important;
     }
 
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(1) {
@@ -608,9 +600,39 @@ st.markdown("""
         min-width: 0 !important;
     }
 
+    /* Column 2: Edit Button Container */
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 65px !important;
-        min-width: 65px !important;
+        flex: 0 0 85px !important;
+        min-width: 85px !important;
+    }
+
+    /* Popover Button Styling */
+    [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) button {
+        width: 100% !important;
+        padding-left: 2px !important;
+        padding-right: 2px !important;
+        font-size: 13px !important;
+        white-space: nowrap !important;
+    }
+
+    /* MOBILE SPECIFIC ADJUSTMENTS (< 768px) */
+    @media (max-width: 768px) {
+        html, body, [data-testid="stAppViewContainer"], .main, .block-container {
+            overflow-x: hidden !important;
+            padding-left: 0.4rem !important;
+            padding-right: 0.4rem !important;
+        }
+
+        /* Allow edit button column slightly more breathing room on mobile */
+        [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) {
+            flex: 0 0 78px !important;
+            min-width: 78px !important;
+        }
+
+        [data-testid="stChatMessage"] {
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+        }
     }
 
     /* INPUT FORM FLEXBOX */
