@@ -5,7 +5,8 @@ import streamlit.components.v1 as components
 from openai import OpenAI
 from supabase import create_client, Client
 
-st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="centered")
+st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="wide")
+st.title("🎲 AI Game Master Campaign (Cloud Saved)")
 
 # --- SUPABASE & OPENROUTER SETUP ---
 
@@ -560,32 +561,41 @@ components.html(
 
 # --- GLOBAL MOBILE RESET & ACTION INPUT CSS ---
 
+st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="wide")
+
+# --- RESPONSIVE CSS (CLEAN PC & MOBILE) ---
+
 st.markdown("""
-    <head>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    </head>
     <style>
-    /* 1. LOCK ALL PARENT CONTAINERS TO SCREEN WIDTH */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .main, .block-container {
-        max-width: 100vw !important;
-        width: 100vw !important;
-        overflow-x: hidden !important;
-        box-sizing: border-box !important;
-    }
-
-    /* Remove outer container margins on mobile */
+    /* DESKTOP & GLOBAL LAYOUT RESET */
     .main .block-container {
-        padding-left: 0.5rem !important;
-        padding-right: 0.5rem !important;
-        padding-top: 1rem !important;
-    }
-
-    /* 2. FORCE CHAT MESSAGES AND POPOVERS TO CONFORM TO SCREEN WIDTH */
-    [data-testid="stChatMessage"] {
+        padding-top: 2rem !important;
+        padding-bottom: 5rem !important;
         max-width: 100% !important;
-        overflow-x: hidden !important;
     }
 
+    /* MOBILE-ONLY OVERRIDES (< 768px) */
+    @media (max-width: 768px) {
+        /* Remove horizontal overflow on phone viewports */
+        html, body, [data-testid="stAppViewContainer"], .main, .block-container {
+            overflow-x: hidden !important;
+            padding-left: 0.5rem !important;
+            padding-right: 0.5rem !important;
+        }
+
+        /* Prevent text from clipping behind open sidebar */
+        [data-testid="stSidebar"] {
+            z-index: 99999 !important;
+        }
+
+        /* Allow long continuous strings/code blocks to wrap on mobile */
+        [data-testid="stChatMessage"] {
+            word-break: break-word !important;
+            overflow-wrap: anywhere !important;
+        }
+    }
+
+    /* CHAT ROW COLUMNS */
     [data-testid="stChatMessage"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -596,7 +606,6 @@ st.markdown("""
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(1) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
-        word-break: break-word !important;
     }
 
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) {
@@ -604,12 +613,7 @@ st.markdown("""
         min-width: 65px !important;
     }
 
-    /* 3. INPUT FORM FLEXBOX FIX */
-    div[data-testid="stForm"] {
-        width: 100% !important;
-        max-width: 100% !important;
-    }
-
+    /* INPUT FORM FLEXBOX */
     div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
