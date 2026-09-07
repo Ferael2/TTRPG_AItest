@@ -5,8 +5,7 @@ import streamlit.components.v1 as components
 from openai import OpenAI
 from supabase import create_client, Client
 
-st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="wide")
-st.title("🎲 AI Game Master Campaign (Cloud Saved)")
+st.set_page_config(page_title="AI D&D Game Master", page_icon="🎲", layout="centered")
 
 # --- SUPABASE & OPENROUTER SETUP ---
 
@@ -562,21 +561,31 @@ components.html(
 # --- GLOBAL MOBILE RESET & ACTION INPUT CSS ---
 
 st.markdown("""
+    <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    </head>
     <style>
-    /* 1. FORCE VIEWPORT & CONTAINER TO FIT MOBILE SCREENS EXACTLY */
-    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"] {
+    /* 1. LOCK ALL PARENT CONTAINERS TO SCREEN WIDTH */
+    html, body, [data-testid="stAppViewContainer"], [data-testid="stHeader"], .main, .block-container {
         max-width: 100vw !important;
+        width: 100vw !important;
         overflow-x: hidden !important;
+        box-sizing: border-box !important;
     }
 
+    /* Remove outer container margins on mobile */
     .main .block-container {
-        max-width: 100% !important;
-        padding-left: 0.8rem !important;
-        padding-right: 0.8rem !important;
+        padding-left: 0.5rem !important;
+        padding-right: 0.5rem !important;
         padding-top: 1rem !important;
     }
 
-    /* 2. PREVENT CHAT ROW COLUMNS FROM OVERFLOWING */
+    /* 2. FORCE CHAT MESSAGES AND POPOVERS TO CONFORM TO SCREEN WIDTH */
+    [data-testid="stChatMessage"] {
+        max-width: 100% !important;
+        overflow-x: hidden !important;
+    }
+
     [data-testid="stChatMessage"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
@@ -584,25 +593,29 @@ st.markdown("""
         width: 100% !important;
     }
 
-    /* Message narrative column */
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(1) {
         flex: 1 1 auto !important;
         min-width: 0 !important;
+        word-break: break-word !important;
     }
 
-    /* Popover edit button column */
     [data-testid="stChatMessage"] div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 70px !important;
-        min-width: 70px !important;
+        flex: 0 0 65px !important;
+        min-width: 65px !important;
     }
 
-    /* 3. INPUT FORM FLEXBOX RESET */
+    /* 3. INPUT FORM FLEXBOX FIX */
+    div[data-testid="stForm"] {
+        width: 100% !important;
+        max-width: 100% !important;
+    }
+
     div[data-testid="stForm"] div[data-testid="stHorizontalBlock"] {
         display: flex !important;
         flex-direction: row !important;
         flex-wrap: nowrap !important;
         align-items: flex-end !important;
-        gap: 8px !important;
+        gap: 6px !important;
         width: 100% !important;
     }
 
@@ -612,9 +625,9 @@ st.markdown("""
     }
 
     div[data-testid="stForm"] div[data-testid="column"]:nth-of-type(2) {
-        flex: 0 0 48px !important;
-        width: 48px !important;
-        min-width: 48px !important;
+        flex: 0 0 42px !important;
+        width: 42px !important;
+        min-width: 42px !important;
     }
 
     div[data-testid="stForm"] div[data-testid="stTextArea"] textarea {
@@ -629,9 +642,9 @@ st.markdown("""
     }
 
     div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button {
-        width: 48px !important;
-        height: 48px !important;
-        min-height: 48px !important;
+        width: 42px !important;
+        height: 42px !important;
+        min-height: 42px !important;
         border-radius: 10px !important;
         padding: 0 !important;
         margin: 0 !important;
