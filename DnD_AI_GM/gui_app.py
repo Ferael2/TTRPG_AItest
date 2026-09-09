@@ -31,9 +31,9 @@ if "client" not in st.session_state:
     )
 
 MODEL_OPTIONS = {
-    "🧠 Meta Llama 3.3 70B (Best Instruction & Detail)": "meta-llama/llama-3.3-70b-instruct:free",
-    "🎨 Qwen 2.5 72B (Rich World & Long Context)": "qwen/qwen-2.5-72b-instruct:free",
-    "⚡ DeepSeek R1 (High Reasoning & Depth)": "deepseek/deepseek-r1:free",
+    "🧠 Meta Llama 3.3-70B (Best Instruction & Detail)": "meta-llama/llama-3.3-70b-instruct:free",
+    "🎨 Qwen 3.5-27b (Rich Context & Storytelling)": "qwen/qwen3.5-27b:free",
+    "⚡ DeepSeek V3 (Creative writing and Strong dialogue)": "deepseek/deepseek-chat-v3-0324:free",
     "🌐 OpenRouter Auto (Fallback)": "openrouter/free"
 }
 
