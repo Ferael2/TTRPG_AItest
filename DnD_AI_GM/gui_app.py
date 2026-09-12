@@ -1131,75 +1131,67 @@ components.html(
     height=0,
 )
 
-# --- INTERACTIVE TABLETOP DICE BAR (ALWAYS VISIBLE) ---
+# --- INTERACTIVE TABLETOP DICE ROLLER (COLLAPSIBLE) ---
 
-st.markdown("""
-<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px; margin-bottom: 6px; padding: 0 4px;">
-    <span style="font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 700; color: #fce38a; display: flex; align-items: center; gap: 6px;">
-        🎲 Quick Dice Roller
-    </span>
-    <span style="font-size: 0.75rem; color: #94a3b8;">Click any die to roll + add ability modifier</span>
-</div>
-""", unsafe_allow_html=True)
+with st.expander("🎲 Quick Dice Roller", expanded=False):
+    col_d1, col_d2, col_d3, col_d4, col_d5, col_d6, col_mod = st.columns([1, 1, 1, 1, 1, 1, 2.2])
 
-col_d1, col_d2, col_d3, col_d4, col_d5, col_d6, col_mod = st.columns([1, 1, 1, 1, 1, 1, 2.2])
+    rolled_sides = None
+    if col_d1.button("d20", use_container_width=True, help="Roll d20 (Checks, Attacks, Saves)"): rolled_sides = 20
+    if col_d2.button("d12", use_container_width=True, help="Roll d12"): rolled_sides = 12
+    if col_d3.button("d10", use_container_width=True, help="Roll d10"): rolled_sides = 10
+    if col_d4.button("d8", use_container_width=True, help="Roll d8"): rolled_sides = 8
+    if col_d5.button("d6", use_container_width=True, help="Roll d6"): rolled_sides = 6
+    if col_d6.button("d4", use_container_width=True, help="Roll d4"): rolled_sides = 4
 
-rolled_sides = None
-if col_d1.button("d20", use_container_width=True, help="Roll d20 (Checks, Attacks, Saves)"): rolled_sides = 20
-if col_d2.button("d12", use_container_width=True, help="Roll d12"): rolled_sides = 12
-if col_d3.button("d10", use_container_width=True, help="Roll d10"): rolled_sides = 10
-if col_d4.button("d8", use_container_width=True, help="Roll d8"): rolled_sides = 8
-if col_d5.button("d6", use_container_width=True, help="Roll d6"): rolled_sides = 6
-if col_d6.button("d4", use_container_width=True, help="Roll d4"): rolled_sides = 4
+    with col_mod:
+        stat_mod_options = ["None (Flat)"]
+        for s_name in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
+            if s_name in stats:
+                s_val = stats[s_name]
+                s_mod = calculate_mod_str(s_val)
+                stat_mod_options.append(f"{s_name} ({s_mod})")
+            else:
+                stat_mod_options.append(s_name)
 
-with col_mod:
-    stat_mod_options = ["None (Flat)"]
-    for s_name in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
-        if s_name in stats:
-            s_val = stats[s_name]
-            s_mod = calculate_mod_str(s_val)
-            stat_mod_options.append(f"{s_name} ({s_mod})")
-        else:
-            stat_mod_options.append(s_name)
+        chosen_stat_label = st.selectbox(
+            "Stat Bonus:", 
+            stat_mod_options, 
+            index=0, 
+            key="dice_mod_select",
+            label_visibility="collapsed"
+        )
 
-    chosen_stat_label = st.selectbox(
-        "Stat Bonus:", 
-        stat_mod_options, 
-        index=0, 
-        key="dice_mod_select",
-        label_visibility="collapsed"
-    )
+    if rolled_sides:
+        raw_roll = random.randint(1, rolled_sides)
+        bonus_val = 0
+        bonus_label = ""
+        chosen_stat_key = chosen_stat_label.split()[0] if not chosen_stat_label.startswith("None") else "None"
+        
+        if chosen_stat_key != "None" and chosen_stat_key in stats:
+            score = stats[chosen_stat_key]
+            bonus_val = (score - 10) // 2
+            sign = "+" if bonus_val >= 0 else ""
+            bonus_label = f" {sign}{bonus_val} ({chosen_stat_key})"
 
-if rolled_sides:
-    raw_roll = random.randint(1, rolled_sides)
-    bonus_val = 0
-    bonus_label = ""
-    chosen_stat_key = chosen_stat_label.split()[0] if not chosen_stat_label.startswith("None") else "None"
-    
-    if chosen_stat_key != "None" and chosen_stat_key in stats:
-        score = stats[chosen_stat_key]
-        bonus_val = (score - 10) // 2
-        sign = "+" if bonus_val >= 0 else ""
-        bonus_label = f" {sign}{bonus_val} ({chosen_stat_key})"
+        total_roll = raw_roll + bonus_val
+        crit_msg = ""
+        if rolled_sides == 20:
+            if raw_roll == 20: crit_msg = " 🔥 NATURAL 20! CRITICAL SUCCESS!"
+            elif raw_roll == 1: crit_msg = " 💀 NATURAL 1! CRITICAL FUMBLE!"
 
-    total_roll = raw_roll + bonus_val
-    crit_msg = ""
-    if rolled_sides == 20:
-        if raw_roll == 20: crit_msg = " 🔥 NATURAL 20! CRITICAL SUCCESS!"
-        elif raw_roll == 1: crit_msg = " 💀 NATURAL 1! CRITICAL FUMBLE!"
+        roll_summary = f"🎲 Rolled d{rolled_sides}: {raw_roll}{bonus_label} = **{total_roll}**{crit_msg}"
+        st.session_state["last_roll_text"] = roll_summary
 
-    roll_summary = f"🎲 Rolled d{rolled_sides}: {raw_roll}{bonus_label} = **{total_roll}**{crit_msg}"
-    st.session_state["last_roll_text"] = roll_summary
-
-if "last_roll_text" in st.session_state:
-    col_res, col_send = st.columns([0.75, 0.25])
-    with col_res:
-        st.markdown(f"<div style='background:rgba(212,175,55,0.18); border:1px solid #d4af37; padding:8px 12px; border-radius:8px; color:#fce38a; font-size:0.9rem;'>{st.session_state['last_roll_text']}</div>", unsafe_allow_html=True)
-    with col_send:
-        if st.button("📤 Send to GM", key="send_roll_btn", type="primary", use_container_width=True):
-            st.session_state["queued_action"] = f"I roll a check: {st.session_state['last_roll_text']}"
-            del st.session_state["last_roll_text"]
-            st.rerun()
+    if "last_roll_text" in st.session_state:
+        col_res, col_send = st.columns([0.75, 0.25])
+        with col_res:
+            st.markdown(f"<div style='background:rgba(212,175,55,0.18); border:1px solid #d4af37; padding:8px 12px; border-radius:8px; color:#fce38a; font-size:0.9rem;'>{st.session_state['last_roll_text']}</div>", unsafe_allow_html=True)
+        with col_send:
+            if st.button("📤 Send to GM", key="send_roll_btn", type="primary", use_container_width=True):
+                st.session_state["queued_action"] = f"I roll a check: {st.session_state['last_roll_text']}"
+                del st.session_state["last_roll_text"]
+                st.rerun()
 
 # Check for queued action from dice roll
 queued_text = st.session_state.pop("queued_action", "")
