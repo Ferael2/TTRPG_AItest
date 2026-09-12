@@ -362,14 +362,64 @@ h1, h2, h3, .rpg-title, .cinzel-font {
 }
 
 .char-name-badge {
-    font-family: 'Cinzel', serif;
-    font-size: 1.25rem;
-    font-weight: 700;
-    color: #fce38a;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 6px;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+
+.char-name-text {
+    font-family: 'Cinzel', serif;
+    font-size: 1.25rem;
+    font-weight: 800;
+    color: #fce38a;
+    line-height: 1.2;
+    text-shadow: 0 2px 8px rgba(212, 175, 55, 0.3);
+}
+
+.char-level-badge {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border-radius: 50%;
+    border: 2px solid #d4af37;
+    background: radial-gradient(circle at center, rgba(212, 175, 55, 0.28) 0%, #0e1524 85%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    box-shadow: 0 0 10px rgba(212, 175, 55, 0.35);
+    flex-shrink: 0;
+    box-sizing: border-box;
+    padding: 0;
+    margin: 0;
+}
+
+.char-level-label {
+    font-size: 0.6rem;
+    font-weight: 700;
+    color: #f7d774;
+    text-transform: uppercase;
+    line-height: 1;
+    margin: 0;
+    padding: 0;
+    display: block;
+    text-align: center;
+}
+
+.char-level-num {
+    font-family: 'Cinzel', serif;
+    font-size: 1.15rem;
+    font-weight: 800;
+    color: #ffffff;
+    line-height: 1;
+    margin: 2px 0 0 0;
+    padding: 0;
+    display: block;
+    text-align: center;
 }
 
 .char-tags {
@@ -536,18 +586,54 @@ h1, h2, h3, .rpg-title, .cinzel-font {
     background: transparent;
 }
 
-/* Inventory Item Chips */
-.inv-tag {
-    display: inline-flex;
+/* Vertical Inventory & Spell Lists */
+.inv-vertical-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    width: 100%;
+    margin-top: 4px;
+}
+
+.inv-item-row {
+    display: flex;
     align-items: center;
-    gap: 4px;
-    background: rgba(255, 255, 255, 0.05);
-    border: 1px solid rgba(255, 255, 255, 0.12);
-    padding: 3px 8px;
+    gap: 10px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(212, 175, 55, 0.2);
+    border-left: 3px solid #d4af37;
     border-radius: 6px;
-    font-size: 0.78rem;
-    color: #cbd5e1;
-    margin: 2px 2px;
+    padding: 7px 12px;
+    font-size: 0.85rem;
+    color: #f1f5f9;
+    box-sizing: border-box;
+    width: 100%;
+}
+
+.inv-item-bullet {
+    font-size: 0.95rem;
+    flex-shrink: 0;
+}
+
+.inv-item-name {
+    flex: 1;
+    font-weight: 500;
+    word-break: break-word;
+}
+
+.spell-item-row {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-left: 3px solid #8b5cf6;
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 0.83rem;
+    color: #e2e8f0;
+    box-sizing: border-box;
+    width: 100%;
 }
 
 /* --- HERO CAMPAIGN BANNER --- */
@@ -739,54 +825,42 @@ with st.sidebar:
     else:
         hp_grad = "linear-gradient(90deg, #ef4444, #dc2626)"
 
-    # Render Character Sheet Card
+    # Render Character Sheet Card (strictly unindented to prevent Markdown code-block interpretation)
     stat_boxes_html = "".join([
-        f"""
-        <div class="stat-box">
-            <div class="s-name">{k}</div>
-            <div class="s-val">{v}</div>
-            <div class="s-mod">{calculate_mod_str(v)}</div>
-        </div>
-        """
+        f'<div class="stat-box"><div class="s-name">{k}</div><div class="s-val">{v}</div><div class="s-mod">{calculate_mod_str(v)}</div></div>'
         for k, v in stats.items()
     ])
 
-    st.markdown(f"""
-    <div class="character-sheet-card">
-        <div class="char-name-badge">
-            <span>{name}</span>
-            <span class="tag-pill">Lv {level}</span>
-        </div>
-        <div class="char-tags">
-            <span class="tag-pill">🧬 {species}</span>
-            <span class="tag-pill">🗡️ {p_class}</span>
-        </div>
-        <div class="vitals-row">
-            <div class="hp-gauge">
-                <div class="hp-meta">
-                    <span style="color:#ef4444;">❤️ Vitality</span>
-                    <span style="color:#f8fafc;">{hp}/{max_hp} HP</span>
-                </div>
-                <div class="hp-bar-bg">
-                    <div class="hp-bar-fill" style="width:{hp_pct}%; background:{hp_grad};"></div>
-                </div>
-            </div>
-            <div class="ac-shield-box">
-                <div class="ac-num">{ac}</div>
-                <div class="ac-label">AC</div>
-            </div>
-        </div>
-        <div class="stats-grid">
-            {stat_boxes_html}
-        </div>
-    </div>
-    """, unsafe_allow_html=True)
+    card_html = (
+        f'<div class="character-sheet-card">'
+        f'<div class="char-name-badge">'
+        f'<div class="char-name-text">{name}</div>'
+        f'<div class="char-level-badge"><span class="char-level-label">Lv</span><span class="char-level-num">{level}</span></div>'
+        f'</div>'
+        f'<div class="char-tags">'
+        f'<span class="tag-pill">🧬 {species}</span>'
+        f'<span class="tag-pill">🗡️ {p_class}</span>'
+        f'</div>'
+        f'<div class="vitals-row">'
+        f'<div class="hp-gauge">'
+        f'<div class="hp-meta"><span style="color:#ef4444;">❤️ Vitality</span><span style="color:#f8fafc;">{hp}/{max_hp} HP</span></div>'
+        f'<div class="hp-bar-bg"><div class="hp-bar-fill" style="width:{hp_pct}%; background:{hp_grad};"></div></div>'
+        f'</div>'
+        f'<div class="ac-shield-box"><div class="ac-num">{ac}</div><div class="ac-label">AC</div></div>'
+        f'</div>'
+        f'<div class="stats-grid">{stat_boxes_html}</div>'
+        f'</div>'
+    )
+    st.markdown(card_html, unsafe_allow_html=True)
 
     with st.expander("🎒 Equipment & Inventory", expanded=False):
         inventory = player_info.get("inventory", [])
         if inventory:
-            inv_html = "".join([f"<span class='inv-tag'>📦 {item}</span>" for item in inventory])
-            st.markdown(f"<div style='display:flex; flex-wrap:wrap; gap:4px;'>{inv_html}</div>", unsafe_allow_html=True)
+            items_html = "".join([
+                f'<div class="inv-item-row"><span class="inv-item-bullet">📦</span><span class="inv-item-name">{item}</span></div>'
+                for item in inventory
+            ])
+            st.markdown(f'<div class="inv-vertical-list">{items_html}</div>', unsafe_allow_html=True)
         else:
             st.info("Inventory is empty.")
 
@@ -806,22 +880,24 @@ with st.sidebar:
                     cur = slot_info.get("current", 0)
                     mx = slot_info.get("max", 0)
                     orbs = ("<span class='mana-orb'></span>" * cur) + ("<span class='mana-orb-empty'></span>" * max(0, mx - cur))
-                    st.markdown(f"""
-                    <div class="spell-slot-card">
-                        <span style="font-size:0.8rem; font-weight:600;">{lvl_title}</span>
-                        <div>{orbs} <span style="font-size:0.8rem; color:#94a3b8;">({cur}/{mx})</span></div>
-                    </div>
-                    """, unsafe_allow_html=True)
+                    slot_card = f'<div class="spell-slot-card"><span style="font-size:0.8rem; font-weight:600;">{lvl_title}</span><div>{orbs} <span style="font-size:0.8rem; color:#94a3b8;">({cur}/{mx})</span></div></div>'
+                    st.markdown(slot_card, unsafe_allow_html=True)
 
             if cantrips:
                 st.markdown("**Cantrips (At-Will):**")
-                c_html = "".join([f"<span class='inv-tag' style='border-color:#8b5cf6;'>🔮 {c}</span>" for c in cantrips])
-                st.markdown(f"<div style='display:flex; flex-wrap:wrap; gap:4px; margin-bottom:8px;'>{c_html}</div>", unsafe_allow_html=True)
+                c_html = "".join([
+                    f'<div class="spell-item-row" style="border-left-color:#8b5cf6;"><span style="font-size:0.9rem;">🔮</span><span style="flex:1;">{c}</span></div>'
+                    for c in cantrips
+                ])
+                st.markdown(f'<div class="inv-vertical-list" style="margin-bottom:8px;">{c_html}</div>', unsafe_allow_html=True)
 
             if spells:
                 st.markdown("**Prepared Spells:**")
-                s_html = "".join([f"<span class='inv-tag' style='border-color:#38bdf8;'>📜 {s}</span>" for s in spells])
-                st.markdown(f"<div style='display:flex; flex-wrap:wrap; gap:4px;'>{s_html}</div>", unsafe_allow_html=True)
+                s_html = "".join([
+                    f'<div class="spell-item-row" style="border-left-color:#38bdf8;"><span style="font-size:0.9rem;">📜</span><span style="flex:1;">{s}</span></div>'
+                    for s in spells
+                ])
+                st.markdown(f'<div class="inv-vertical-list">{s_html}</div>', unsafe_allow_html=True)
 
     st.markdown("---")
     st.markdown("<h3 class='rpg-title' style='font-size:1.1rem; color:#fce38a;'>🤖 AI Game Master Model</h3>", unsafe_allow_html=True)
@@ -1055,45 +1131,72 @@ components.html(
     height=0,
 )
 
-# --- INTERACTIVE QUICK DICE ROLLER & ACTION CHIPS ---
+# --- INTERACTIVE TABLETOP DICE BAR (ALWAYS VISIBLE) ---
 
-with st.expander("🎲 Quick Dice Roller & Action Suggestions", expanded=False):
-    col_d1, col_d2, col_d3, col_d4, col_d5, col_d6, col_mod = st.columns([1, 1, 1, 1, 1, 1, 2])
+st.markdown("""
+<div style="display: flex; align-items: center; justify-content: space-between; margin-top: 16px; margin-bottom: 6px; padding: 0 4px;">
+    <span style="font-family: 'Cinzel', serif; font-size: 0.95rem; font-weight: 700; color: #fce38a; display: flex; align-items: center; gap: 6px;">
+        🎲 Quick Dice Roller
+    </span>
+    <span style="font-size: 0.75rem; color: #94a3b8;">Click any die to roll + add ability modifier</span>
+</div>
+""", unsafe_allow_html=True)
+
+col_d1, col_d2, col_d3, col_d4, col_d5, col_d6, col_mod = st.columns([1, 1, 1, 1, 1, 1, 2.2])
+
+rolled_sides = None
+if col_d1.button("d20", use_container_width=True, help="Roll d20 (Checks, Attacks, Saves)"): rolled_sides = 20
+if col_d2.button("d12", use_container_width=True, help="Roll d12"): rolled_sides = 12
+if col_d3.button("d10", use_container_width=True, help="Roll d10"): rolled_sides = 10
+if col_d4.button("d8", use_container_width=True, help="Roll d8"): rolled_sides = 8
+if col_d5.button("d6", use_container_width=True, help="Roll d6"): rolled_sides = 6
+if col_d6.button("d4", use_container_width=True, help="Roll d4"): rolled_sides = 4
+
+with col_mod:
+    stat_mod_options = ["None (Flat)"]
+    for s_name in ["STR", "DEX", "CON", "INT", "WIS", "CHA"]:
+        if s_name in stats:
+            s_val = stats[s_name]
+            s_mod = calculate_mod_str(s_val)
+            stat_mod_options.append(f"{s_name} ({s_mod})")
+        else:
+            stat_mod_options.append(s_name)
+
+    chosen_stat_label = st.selectbox(
+        "Stat Bonus:", 
+        stat_mod_options, 
+        index=0, 
+        key="dice_mod_select",
+        label_visibility="collapsed"
+    )
+
+if rolled_sides:
+    raw_roll = random.randint(1, rolled_sides)
+    bonus_val = 0
+    bonus_label = ""
+    chosen_stat_key = chosen_stat_label.split()[0] if not chosen_stat_label.startswith("None") else "None"
     
-    rolled_sides = None
-    if col_d1.button("d20", use_container_width=True): rolled_sides = 20
-    if col_d2.button("d12", use_container_width=True): rolled_sides = 12
-    if col_d3.button("d10", use_container_width=True): rolled_sides = 10
-    if col_d4.button("d8", use_container_width=True): rolled_sides = 8
-    if col_d5.button("d6", use_container_width=True): rolled_sides = 6
-    if col_d6.button("d4", use_container_width=True): rolled_sides = 4
-    
-    with col_mod:
-        stat_keys = ["None", "STR", "DEX", "CON", "INT", "WIS", "CHA"]
-        chosen_stat = st.selectbox("Add Stat Bonus:", stat_keys, index=0, key="dice_mod_select")
+    if chosen_stat_key != "None" and chosen_stat_key in stats:
+        score = stats[chosen_stat_key]
+        bonus_val = (score - 10) // 2
+        sign = "+" if bonus_val >= 0 else ""
+        bonus_label = f" {sign}{bonus_val} ({chosen_stat_key})"
 
-    if rolled_sides:
-        raw_roll = random.randint(1, rolled_sides)
-        bonus_val = 0
-        bonus_label = ""
-        if chosen_stat != "None" and chosen_stat in stats:
-            score = stats[chosen_stat]
-            bonus_val = (score - 10) // 2
-            sign = "+" if bonus_val >= 0 else ""
-            bonus_label = f" {sign}{bonus_val} ({chosen_stat})"
+    total_roll = raw_roll + bonus_val
+    crit_msg = ""
+    if rolled_sides == 20:
+        if raw_roll == 20: crit_msg = " 🔥 NATURAL 20! CRITICAL SUCCESS!"
+        elif raw_roll == 1: crit_msg = " 💀 NATURAL 1! CRITICAL FUMBLE!"
 
-        total_roll = raw_roll + bonus_val
-        crit_msg = ""
-        if rolled_sides == 20:
-            if raw_roll == 20: crit_msg = "🔥 NATURAL 20! CRITICAL SUCCESS!"
-            elif raw_roll == 1: crit_msg = "💀 NATURAL 1! CRITICAL FUMBLE!"
+    roll_summary = f"🎲 Rolled d{rolled_sides}: {raw_roll}{bonus_label} = **{total_roll}**{crit_msg}"
+    st.session_state["last_roll_text"] = roll_summary
 
-        roll_summary = f"🎲 Rolled d{rolled_sides}: {raw_roll}{bonus_label} = **{total_roll}** {crit_msg}"
-        st.session_state["last_roll_text"] = roll_summary
-
-    if "last_roll_text" in st.session_state:
-        st.markdown(f"<div style='background:rgba(212,175,55,0.15); border:1px solid #d4af37; padding:8px 12px; border-radius:8px; margin:6px 0;'>{st.session_state['last_roll_text']}</div>", unsafe_allow_html=True)
-        if st.button("📤 Send Roll Result to Game Master", key="send_roll_btn", type="primary"):
+if "last_roll_text" in st.session_state:
+    col_res, col_send = st.columns([0.75, 0.25])
+    with col_res:
+        st.markdown(f"<div style='background:rgba(212,175,55,0.18); border:1px solid #d4af37; padding:8px 12px; border-radius:8px; color:#fce38a; font-size:0.9rem;'>{st.session_state['last_roll_text']}</div>", unsafe_allow_html=True)
+    with col_send:
+        if st.button("📤 Send to GM", key="send_roll_btn", type="primary", use_container_width=True):
             st.session_state["queued_action"] = f"I roll a check: {st.session_state['last_roll_text']}"
             del st.session_state["last_roll_text"]
             st.rerun()
