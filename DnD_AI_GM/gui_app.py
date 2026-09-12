@@ -1,3 +1,4 @@
+import copy
 import json
 import random
 import re
@@ -122,6 +123,15 @@ def process_and_strip_character_state(text, campaign_data):
         text = re.sub(pattern, "", text, flags=re.DOTALL | re.IGNORECASE).strip()
         
     return text
+
+def restore_player_state_from_snapshot(snapshot, campaign_data):
+    """Restores the campaign player state from a previously saved snapshot dict.
+    Call this before re-processing a GM response to undo any spell slot, HP,
+    or inventory changes that the original AI turn wrote to the character state.
+    If no snapshot is provided this is a no-op (safe to call unconditionally).
+    """
+    if snapshot and isinstance(snapshot, dict):
+        campaign_data["campaign_state"]["player"] = copy.deepcopy(snapshot)
 
 def calculate_mod_str(score):
     """Calculates D&D 5e ability modifier string from an integer score."""
@@ -945,7 +955,9 @@ with st.sidebar:
                 try:
                     response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
                     reply = response.choices[0].message.content
-                    campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply})
+                    player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
+                    reply = process_and_strip_character_state(reply, campaign_data)
+                    campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply, "player_state_before": player_snapshot})
                     save_db_campaign(campaign_data)
                     st.rerun()
                 except Exception as e:
@@ -1060,6 +1072,13 @@ for idx in range(start_idx, total_messages):
                     st.markdown("**Rewind To This Turn**")
                     st.caption("Revert campaign state and retry your action from here.")
                     if st.button("Confirm Rewind", key=f"btn_rewind_{idx}", type="primary"):
+                        # Restore player state (spell slots, HP, etc.) from the snapshot
+                        # stored in the preceding assistant message so the rewound turn
+                        # is cleanly undone before re-sending to the AI.
+                        if idx > 0:
+                            prev_msg = campaign_data["messages"][idx - 1]
+                            if isinstance(prev_msg, dict) and prev_msg.get("role") in ("assistant", "model"):
+                                restore_player_state_from_snapshot(prev_msg.get("player_state_before"), campaign_data)
                         campaign_data["messages"] = campaign_data["messages"][:idx + 1]
                         save_db_campaign(campaign_data)
                         
@@ -1086,7 +1105,11 @@ for idx in range(start_idx, total_messages):
                         try:
                             response = call_openrouter(api_messages, st.session_state.get("current_model_slug"))
                             reply = response.choices[0].message.content
-                            campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply})
+                            # Snapshot the (just-restored) player state before the new reply
+                            # is processed, so future rewinds from this turn can also roll back.
+                            player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
+                            reply = process_and_strip_character_state(reply, campaign_data)
+                            campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply, "player_state_before": player_snapshot})
                             save_db_campaign(campaign_data)
                         except Exception as e:
                             st.error(f"API Error during rewind: {e}")
@@ -1096,6 +1119,11 @@ for idx in range(start_idx, total_messages):
                     st.markdown("**Edit GM Response**")
                     edited_gm_text = st.text_area("Narrative Text:", value=text_to_display, height=160, key=f"edit_gm_{idx}")
                     if st.button("Save Edit", key=f"save_edit_{idx}", type="primary"):
+                        # Roll the player state back to what it was before this AI turn ran,
+                        # then re-apply any CHARACTER_STATE found in the edited text.
+                        # This ensures spell slots are restored if the edited text no longer
+                        # contains a spell-casting action.
+                        restore_player_state_from_snapshot(msg.get("player_state_before"), campaign_data)
                         edited_text = process_and_strip_character_state(edited_gm_text, campaign_data)
                         campaign_data["messages"][idx]["content"] = edited_text
                         campaign_data["messages"][idx]["text"] = edited_text
@@ -1253,6 +1281,9 @@ if submit_action and user_input.strip():
                 reply = None
 
     if reply:
+        # Snapshot player state before the AI's CHARACTER_STATE block is applied so
+        # that a future Rewind or Edit GM action can restore it cleanly.
+        player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
         reply = process_and_strip_character_state(reply, campaign_data)
         
         if "<WORLD_CODEX>" in reply.upper():
@@ -1262,7 +1293,7 @@ if submit_action and user_input.strip():
                 campaign_data["world_codex"] = match_codex.group(1).strip()
             reply = re.sub(pattern_codex, "", reply, flags=re.DOTALL | re.IGNORECASE).strip()
 
-        campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply})
+        campaign_data["messages"].append({"role": "assistant", "content": reply, "text": reply, "player_state_before": player_snapshot})
         
         if "turn_counter" not in st.session_state:
             st.session_state.turn_counter = 0
