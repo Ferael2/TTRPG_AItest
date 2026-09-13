@@ -496,6 +496,11 @@ div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button:hover {
     transform: translateY(-1px) !important;
     box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45) !important;
 }
+
+/* Hide "Press Ctrl + Enter to submit" hint on text areas */
+div[data-testid="InputInstructions"] {
+    display: none !important;
+}
 </style>
 """
 
