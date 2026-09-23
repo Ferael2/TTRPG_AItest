@@ -102,3 +102,16 @@ def list_user_records(supabase: Client) -> list[dict]:
     except Exception:
         pass
     return []
+
+
+def delete_user_record(supabase: Client, username: str) -> bool:
+    """Deletes a user's account record and their isolated campaign vault from Supabase."""
+    normalized_username = username.strip().lower()
+    try:
+        supabase.table("campaigns").delete().eq("id", f"user_account:{normalized_username}").execute()
+        supabase.table("campaigns").delete().eq("id", f"campaign_{normalized_username}").execute()
+        return True
+    except Exception as e:
+        st.error(f"Error deleting user record from Supabase: {e}")
+        return False
+

@@ -8,7 +8,7 @@ import json
 import streamlit as st
 
 from ai_engine import call_openrouter, update_campaign_summary
-from auth import list_all_users
+from auth import list_all_users, delete_user
 from config import MODEL_OPTIONS
 from database import save_db_campaign, delete_db_campaign
 from state_helpers import calculate_mod_str, process_and_strip_character_state
@@ -329,6 +329,40 @@ def render_sidebar(
                     "🛡️ The admin account stores everything that was already in the database "
                     "under the master vault (`default_campaign`)."
                 )
+
+                # Banish Account Controls
+                deletable_users = [
+                    u.get("username")
+                    for u in all_users
+                    if u.get("username") and u.get("username", "").lower() != "admin" and u.get("role") != "admin"
+                ]
+
+                if deletable_users:
+                    st.markdown("<hr style='margin: 8px 0; border-color: rgba(239, 68, 68, 0.3);'>", unsafe_allow_html=True)
+                    st.markdown(
+                        "<p style='font-size:0.85rem; font-weight:700; color:#ef4444; margin-bottom:4px;'>⚔️ Banish Adventurer Account</p>",
+                        unsafe_allow_html=True,
+                    )
+                    user_to_delete = st.selectbox(
+                        "Adventurer to banish:",
+                        options=deletable_users,
+                        key="sel_delete_adventurer",
+                        label_visibility="collapsed",
+                    )
+                    with st.popover(f"🗑️ Banish '{user_to_delete}'", use_container_width=True):
+                        st.markdown(f"**Permanently Banish '{user_to_delete}'?**")
+                        st.caption(
+                            "This action will completely delete their login credentials and "
+                            "erase their private campaign vault and chat history forever."
+                        )
+                        if st.button("Confirm Banishment", key=f"btn_banish_{user_to_delete}", type="primary", use_container_width=True):
+                            ok, msg = delete_user(supabase, user_to_delete, current_user)
+                            if ok:
+                                st.success(msg)
+                                st.rerun()
+                            else:
+                                st.error(msg)
+
 
         # --- Reset campaign ---
         st.markdown("---")

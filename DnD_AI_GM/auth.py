@@ -7,7 +7,7 @@ import hmac
 import re
 import secrets
 
-from database import get_user_record, save_user_record, list_user_records
+from database import get_user_record, save_user_record, list_user_records, delete_user_record
 
 
 def hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
@@ -128,3 +128,26 @@ def init_admin_account(supabase, default_password: str = "admin123") -> None:
 def list_all_users(supabase) -> list[dict]:
     """Retrieves all registered users for admin oversight."""
     return list_user_records(supabase)
+
+
+def delete_user(supabase, username: str, requesting_user: dict | None = None) -> tuple[bool, str]:
+    """Deletes an adventurer account and their campaign vault.
+
+    Enforces that only admin can delete accounts and the admin account cannot be deleted.
+    Returns (success_bool, message).
+    """
+    if requesting_user and requesting_user.get("role") != "admin":
+        return False, "Permission denied: Only Realm Administrators may banish accounts."
+
+    cleaned_user = username.strip()
+    if cleaned_user.lower() == "admin":
+        return False, "The master Realm Administrator account cannot be banished."
+
+    target_user = get_user(supabase, cleaned_user)
+    if not target_user:
+        return False, f"Adventurer '{cleaned_user}' does not exist in the realm."
+
+    if delete_user_record(supabase, cleaned_user):
+        return True, f"Adventurer '{cleaned_user}' and their campaign vault have been banished from the realm."
+    else:
+        return False, f"Failed to delete adventurer '{cleaned_user}'. Please try again."
