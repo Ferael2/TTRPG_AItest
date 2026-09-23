@@ -608,25 +608,10 @@ div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button:hover {
 """
 
 
-def inject_styles(is_authenticated: bool = True):
+def inject_styles():
     """Injects the Dark Fantasy CSS theme into the Streamlit app.
 
-    When is_authenticated is False, hides the sidebar completely so the login portal
-    is cleanly centered without an empty sidebar bar.
+    Call once near the top of gui_app.py, after st.set_page_config().
     """
     st.markdown(DARK_FANTASY_CSS, unsafe_allow_html=True)
-    if not is_authenticated:
-        st.markdown(
-            """
-            <style>
-            [data-testid="stSidebar"], section[data-testid="stSidebar"] {
-                display: none !important;
-            }
-            [data-testid="stSidebarCollapseButton"] {
-                display: none !important;
-            }
-            </style>
-            """,
-            unsafe_allow_html=True,
-        )
 

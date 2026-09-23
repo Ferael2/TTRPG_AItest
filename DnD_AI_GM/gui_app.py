@@ -67,7 +67,7 @@ if "admin_initialized" not in st.session_state:
 # =============================================================================
 
 is_authenticated = bool(st.session_state.get("current_user"))
-inject_styles(is_authenticated=is_authenticated)
+inject_styles()
 
 if not is_authenticated:
     render_auth_page(supabase)
