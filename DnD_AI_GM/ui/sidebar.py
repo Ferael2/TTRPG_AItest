@@ -8,6 +8,7 @@ import json
 import streamlit as st
 
 from ai_engine import call_openrouter, update_campaign_summary
+from auth import list_all_users
 from config import MODEL_OPTIONS
 from database import save_db_campaign, delete_db_campaign
 from state_helpers import calculate_mod_str, process_and_strip_character_state
@@ -27,6 +28,38 @@ def render_sidebar(
     and calls st.rerun() as appropriate.
     """
     with st.sidebar:
+        # --- User Profile & Logout Header ---
+        current_user = st.session_state.get("current_user", {})
+        username = current_user.get("username", "Adventurer")
+        role = current_user.get("role", "player")
+        is_admin = role == "admin"
+
+        role_badge_html = (
+            '<span class="admin-badge">👑 Admin</span>'
+            if is_admin
+            else '<span class="player-badge">🗡️ Adventurer</span>'
+        )
+
+        st.markdown(
+            f"""
+            <div class="user-profile-card">
+                <div class="user-profile-info">
+                    <span class="user-profile-name">{username}</span>
+                    <span class="user-profile-role">{role_badge_html}</span>
+                </div>
+            </div>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        if st.button("🚪 Log Out", use_container_width=True, key="btn_logout"):
+            for k in ["current_user", "campaign_data", "campaign_id", "turn_counter", "dev_summary_preview"]:
+                if k in st.session_state:
+                    del st.session_state[k]
+            st.rerun()
+
+        st.markdown("<hr style='margin: 8px 0; border-color: rgba(212, 175, 55, 0.2);'>", unsafe_allow_html=True)
+
         st.markdown(
             "<h2 class='rpg-title' style='color:#fce38a; margin-bottom:4px;'>⚔️ Character Sheet</h2>",
             unsafe_allow_html=True,
@@ -271,6 +304,31 @@ def render_sidebar(
                 if st.button("❌ Close Preview", use_container_width=True):
                     del st.session_state["dev_summary_preview"]
                     st.rerun()
+
+        # --- Admin Overseer ---
+        if is_admin:
+            with st.expander("👥 Realm Admin Overseer", expanded=False):
+                st.markdown("**Registered Realm Accounts:**")
+                all_users = list_all_users(supabase)
+                if all_users:
+                    for u in all_users:
+                        u_name = u.get("username", "Unknown")
+                        u_role = u.get("role", "player")
+                        tag = "👑 Admin" if u_role == "admin" else "🗡️ Adventurer"
+                        c_id = "default_campaign" if u_role == "admin" else f"campaign_{u_name.lower()}"
+                        st.markdown(
+                            f"<div style='font-size:0.85rem; padding:4px 0; border-bottom:1px solid rgba(255,255,255,0.06);'>"
+                            f"<strong>{u_name}</strong> &bull; <span style='color:#94a3b8;'>{tag}</span><br>"
+                            f"<code style='font-size:0.75rem; color:#e5c365;'>vault: {c_id}</code></div>",
+                            unsafe_allow_html=True,
+                        )
+                else:
+                    st.info("No adventurers registered yet.")
+
+                st.caption(
+                    "🛡️ The admin account stores everything that was already in the database "
+                    "under the master vault (`default_campaign`)."
+                )
 
         # --- Reset campaign ---
         st.markdown("---")

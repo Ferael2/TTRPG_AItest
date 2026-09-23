@@ -27,11 +27,13 @@ st.set_page_config(
 )
 
 # Local imports (after set_page_config)
+from auth import init_admin_account
 from config import DEFAULT_CAMPAIGN
 from database import init_supabase, load_db_campaign, save_db_campaign
 from ai_engine import init_openai_client, call_openrouter, build_system_prompt, update_campaign_summary
 from state_helpers import process_and_strip_character_state
 from styles import inject_styles
+from ui.auth_view import render_auth_page
 from ui.sidebar import render_sidebar
 from ui.chat_display import render_chat
 from ui.dice_roller import render_dice_roller
@@ -53,13 +55,40 @@ if not OPENROUTER_API_KEY or not SUPABASE_URL or not SUPABASE_KEY:
 
 supabase = init_supabase(SUPABASE_URL, SUPABASE_KEY)
 client = init_openai_client(OPENROUTER_API_KEY)
+st.session_state.client = client
+
+# Ensure the admin account exists in Supabase
+init_admin_account(supabase)
 
 # =============================================================================
-# SESSION STATE — load campaign from DB on first run
+# APPLY THEME
+# =============================================================================
+
+inject_styles()
+
+# =============================================================================
+# AUTHENTICATION GATE (Require login before accessing chat)
+# =============================================================================
+
+if "current_user" not in st.session_state or not st.session_state.current_user:
+    render_auth_page(supabase)
+    st.stop()
+
+current_user = st.session_state.current_user
+
+# Determine the user's isolated campaign vault ID
+if "campaign_id" not in st.session_state:
+    if current_user.get("role") == "admin":
+        st.session_state.campaign_id = "default_campaign"
+    else:
+        st.session_state.campaign_id = f"campaign_{current_user['username'].lower()}"
+
+# =============================================================================
+# SESSION STATE — load user-specific campaign from DB on first run
 # =============================================================================
 
 if "campaign_data" not in st.session_state:
-    db_data = load_db_campaign(supabase)
+    db_data = load_db_campaign(supabase, st.session_state.campaign_id)
     st.session_state.campaign_data = db_data if db_data else DEFAULT_CAMPAIGN.copy()
 
 campaign_data = st.session_state.campaign_data
@@ -74,12 +103,6 @@ world_info = campaign_data.get("world_codex", "")
 world_exists = bool(world_info.strip())
 game_state = campaign_data.get("campaign_state", {})
 character_created = game_state.get("player", {}).get("species") != "Unknown"
-
-# =============================================================================
-# APPLY THEME
-# =============================================================================
-
-inject_styles()
 
 # =============================================================================
 # SIDEBAR

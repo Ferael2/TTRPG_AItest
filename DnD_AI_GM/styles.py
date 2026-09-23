@@ -497,9 +497,112 @@ div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button:hover {
     box-shadow: 0 4px 14px rgba(212, 175, 55, 0.45) !important;
 }
 
-/* Hide "Press Ctrl + Enter to submit" hint on text areas */
-div[data-testid="InputInstructions"] {
-    display: none !important;
+/* --- AUTHENTICATION PORTAL & USER BADGES --- */
+.auth-portal-container {
+    max-width: 480px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+}
+
+.auth-portal-card {
+    background: linear-gradient(160deg, #131b2e 0%, #0c101a 100%);
+    border: 1px solid rgba(212, 175, 55, 0.4);
+    border-radius: 16px;
+    padding: 28px 24px;
+    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(212, 175, 55, 0.12);
+    position: relative;
+    overflow: hidden;
+}
+
+.auth-portal-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, transparent, #d4af37, #fce38a, #d4af37, transparent);
+}
+
+.auth-portal-header {
+    text-align: center;
+    margin-bottom: 24px;
+}
+
+.auth-portal-emblem {
+    font-size: 3rem;
+    margin-bottom: 8px;
+    filter: drop-shadow(0 0 12px rgba(212, 175, 55, 0.4));
+    display: inline-block;
+}
+
+.auth-portal-title {
+    font-family: 'Cinzel', serif;
+    font-size: 1.7rem;
+    font-weight: 800;
+    color: #fce38a;
+    letter-spacing: 0.08em;
+    margin: 0;
+    text-shadow: 0 2px 10px rgba(212, 175, 55, 0.35);
+}
+
+.auth-portal-subtitle {
+    font-size: 0.88rem;
+    color: #94a3b8;
+    margin-top: 6px;
+    font-style: italic;
+}
+
+.user-profile-card {
+    background: linear-gradient(135deg, #141c2e, #0e1422);
+    border: 1px solid rgba(212, 175, 55, 0.3);
+    border-radius: 10px;
+    padding: 10px 14px;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.user-profile-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.user-profile-name {
+    font-family: 'Cinzel', serif;
+    font-weight: 700;
+    font-size: 1rem;
+    color: #fce38a;
+}
+
+.user-profile-role {
+    font-size: 0.72rem;
+    color: #cbd5e1;
+    font-weight: 500;
+}
+
+.admin-badge {
+    background: linear-gradient(135deg, #7c3aed, #4f46e5);
+    color: #f8fafc;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid rgba(167, 139, 250, 0.4);
+}
+
+.player-badge {
+    background: linear-gradient(135deg, #059669, #047857);
+    color: #f8fafc;
+    font-size: 0.65rem;
+    font-weight: 700;
+    padding: 2px 7px;
+    border-radius: 999px;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    border: 1px solid rgba(52, 211, 153, 0.4);
 }
 </style>
 """

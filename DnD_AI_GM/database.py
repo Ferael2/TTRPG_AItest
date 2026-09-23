@@ -1,5 +1,5 @@
 # database.py
-# Supabase client setup and all campaign persistence helpers.
+# Supabase client setup, campaign persistence helpers, and user account storage.
 
 import streamlit as st
 from supabase import create_client, Client
@@ -11,31 +11,128 @@ def init_supabase(url: str, key: str) -> Client:
     return create_client(url, key)
 
 
-def load_db_campaign(supabase: Client):
+def _resolve_campaign_id(campaign_id: str | None = None) -> str:
+    """Resolves the active campaign ID from argument or session state."""
+    if campaign_id:
+        return campaign_id
+    if hasattr(st, "session_state") and "campaign_id" in st.session_state:
+        return st.session_state.campaign_id
+    return "default_campaign"
+
+
+def load_db_campaign(supabase: Client, campaign_id: str | None = None):
     """Loads the campaign record from the Supabase database.
 
     Returns the campaign data dict on success, or None if no record exists.
     """
+    target_id = _resolve_campaign_id(campaign_id)
     try:
-        response = supabase.table("campaigns").select("data").eq("id", "default_campaign").execute()
+        response = supabase.table("campaigns").select("data").eq("id", target_id).execute()
         if response.data and len(response.data) > 0:
             return response.data[0]["data"]
     except Exception as e:
-        st.error(f"Error loading from Supabase: {e}")
+        st.error(f"Error loading campaign '{target_id}' from Supabase: {e}")
     return None
 
 
-def save_db_campaign(supabase: Client, data: dict):
+def save_db_campaign(supabase: Client, data: dict, campaign_id: str | None = None):
     """Saves (upserts) the full campaign record to the Supabase database."""
+    target_id = _resolve_campaign_id(campaign_id)
     try:
-        supabase.table("campaigns").upsert({"id": "default_campaign", "data": data}).execute()
+        supabase.table("campaigns").upsert({"id": target_id, "data": data}).execute()
     except Exception as e:
-        st.error(f"Error saving to Supabase: {e}")
+        st.error(f"Error saving campaign '{target_id}' to Supabase: {e}")
 
 
-def delete_db_campaign(supabase: Client):
+def delete_db_campaign(supabase: Client, campaign_id: str | None = None):
     """Deletes the campaign record from the Supabase database, effectively resetting it."""
+    target_id = _resolve_campaign_id(campaign_id)
     try:
-        supabase.table("campaigns").delete().eq("id", "default_campaign").execute()
+        supabase.table("campaigns").delete().eq("id", target_id).execute()
     except Exception as e:
-        st.error(f"Error resetting Supabase record: {e}")
+        st.error(f"Error resetting Supabase record '{target_id}': {e}")
+
+
+# =============================================================================
+# USER ACCOUNT PERSISTENCE
+# =============================================================================
+
+def get_user_record(supabase: Client, username: str) -> dict | None:
+    """Fetches user credentials and profile by username.
+
+    Supports dedicated 'users' table or transparent fallback to 'campaigns' table.
+    """
+    normalized_username = username.strip().lower()
+    # Try dedicated 'users' table if present
+    try:
+        resp = supabase.table("users").select("*").eq("username", normalized_username).execute()
+        if resp.data and len(resp.data) > 0:
+            return resp.data[0]
+    except Exception:
+        pass
+
+    # Fallback to campaigns table with user_account: prefix
+    try:
+        resp = (
+            supabase.table("campaigns")
+            .select("data")
+            .eq("id", f"user_account:{normalized_username}")
+            .execute()
+        )
+        if resp.data and len(resp.data) > 0:
+            return resp.data[0]["data"]
+    except Exception as e:
+        st.error(f"Error fetching user record from Supabase: {e}")
+    return None
+
+
+def save_user_record(supabase: Client, user_data: dict) -> bool:
+    """Persists a user record to the Supabase database."""
+    normalized_username = user_data["username"].strip().lower()
+    success = False
+
+    # Attempt to write to dedicated 'users' table if it exists
+    try:
+        supabase.table("users").upsert(user_data).execute()
+        success = True
+    except Exception:
+        pass
+
+    # Ensure always persisted in campaigns table as user_account:<username>
+    try:
+        supabase.table("campaigns").upsert({
+            "id": f"user_account:{normalized_username}",
+            "data": user_data,
+        }).execute()
+        success = True
+    except Exception as e:
+        st.error(f"Error saving user record to Supabase: {e}")
+        return False
+
+    return success
+
+
+def list_user_records(supabase: Client) -> list[dict]:
+    """Lists all registered user records for administrative oversight."""
+    # Try users table
+    try:
+        resp = supabase.table("users").select("*").execute()
+        if resp.data and len(resp.data) > 0:
+            return resp.data
+    except Exception:
+        pass
+
+    # Try campaigns table with like filter
+    try:
+        resp = (
+            supabase.table("campaigns")
+            .select("data")
+            .like("id", "user_account:%")
+            .execute()
+        )
+        if resp.data and len(resp.data) > 0:
+            return [row["data"] for row in resp.data if "data" in row and isinstance(row["data"], dict)]
+    except Exception:
+        pass
+
+    return []
