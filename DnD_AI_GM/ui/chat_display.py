@@ -36,7 +36,17 @@ def render_chat(campaign_data: dict, supabase, system_instruction: str):
 
         raw_role = msg.get("role", "user")
         role = "assistant" if raw_role in ["assistant", "model"] else "user"
-        text_to_display = msg.get("content") or msg.get("text", "")
+        english_text = msg.get("content") or msg.get("text", "")
+
+        # If Spanish mode is active and a cached translation exists, show it;
+        # otherwise fall back to English (new messages without text_es are shown
+        # in English until they get translated on the next write).
+        current_lang = st.session_state.get("language", "en")
+        if role == "assistant" and current_lang == "es":
+            text_to_display = msg.get("text_es") or english_text
+        else:
+            text_to_display = english_text
+
         marker_class = "gm-message-marker" if role == "assistant" else "user-message-marker"
 
         with st.chat_message(role):
@@ -52,7 +62,7 @@ def render_chat(campaign_data: dict, supabase, system_instruction: str):
                 if role == "user":
                     _render_rewind_popover(idx, campaign_data, supabase, system_instruction)
                 else:
-                    _render_edit_gm_popover(idx, msg, text_to_display, campaign_data, supabase)
+                    _render_edit_gm_popover(idx, msg, english_text, campaign_data, supabase)
 
     # Auto-scroll anchor + JS
     st.markdown("<div id='bottom-scroll-anchor'></div>", unsafe_allow_html=True)

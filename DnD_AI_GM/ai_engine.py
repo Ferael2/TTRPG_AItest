@@ -9,6 +9,28 @@ from openai import OpenAI
 
 from config import MODEL_OPTIONS, MAX_HISTORY_TURNS
 
+# Supported language options: code → display name
+SUPPORTED_LANGUAGES = {
+    "en": "🇬🇧 English",
+    "es": "🇲🇽 Español",
+}
+
+# Translation prompt template
+_TRANSLATION_PROMPT = {
+    "es": (
+        "You are a professional literary translator specializing in tabletop roleplaying game narratives. "
+        "Translate the following D&D Game Master text from English to Latin American Spanish.\n\n"
+        "STRICT RULES:\n"
+        "1. Preserve all proper nouns EXACTLY as-is: character names, place names, spell names, item names, faction names.\n"
+        "2. Maintain the second-person dramatic fantasy tone (\"You...\" → \"Tú...\" or \"Usted...\" — prefer \"Tú\").\n"
+        "3. Translate idioms and metaphors by their meaning and emotional weight, NOT literally.\n"
+        "4. Preserve paragraph breaks, emphasis, and markdown formatting (bold, italic) exactly.\n"
+        "5. Output ONLY the translated text. No explanations, no commentary, no prefixes.\n\n"
+        "TEXT TO TRANSLATE:\n"
+    ),
+}
+
+
 
 def init_openai_client(api_key: str) -> OpenAI:
     """Creates (or reuses from session state) the OpenAI-compatible OpenRouter client."""
@@ -47,6 +69,40 @@ def call_openrouter(client: OpenAI, messages: list, selected_model_slug: str | N
             continue
 
     raise last_error
+
+
+def translate_narrative(client: OpenAI, text: str, target_lang: str, model_slug: str | None = None) -> str:
+    """Translates GM narrative text into *target_lang* using a context-aware LLM call.
+
+    Uses the same OpenRouter client so no extra API key is needed.
+    Falls back to the original English text if translation fails.
+
+    Args:
+        client: The OpenAI-compatible OpenRouter client.
+        text: English GM narrative to translate (CHARACTER_STATE tags must be pre-stripped).
+        target_lang: ISO-639-1 language code (e.g. 'es'). 'en' is a no-op.
+        model_slug: Preferred model slug; falls back to the default list if None.
+
+    Returns:
+        The translated text, or *text* unchanged if an error occurs.
+    """
+    if target_lang == "en" or target_lang not in _TRANSLATION_PROMPT:
+        return text
+
+    prompt_prefix = _TRANSLATION_PROMPT[target_lang]
+    messages = [
+        {
+            "role": "user",
+            "content": prompt_prefix + text,
+        }
+    ]
+
+    try:
+        response = call_openrouter(client, messages, model_slug)
+        translated = response.choices[0].message.content.strip()
+        return translated if translated else text
+    except Exception:
+        return text  # Gracefully degrade to English on failure
 
 
 def build_system_prompt(campaign_data: dict) -> tuple[str, str]:

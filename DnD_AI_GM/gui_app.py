@@ -30,7 +30,7 @@ st.set_page_config(
 from auth import init_admin_account
 from config import DEFAULT_CAMPAIGN
 from database import init_supabase, load_db_campaign, save_db_campaign
-from ai_engine import init_openai_client, call_openrouter, build_system_prompt, update_campaign_summary
+from ai_engine import init_openai_client, call_openrouter, build_system_prompt, update_campaign_summary, translate_narrative
 from state_helpers import process_and_strip_character_state
 from styles import inject_styles
 from ui.auth_view import render_auth_page
@@ -163,11 +163,21 @@ if not campaign_data.get("messages"):
         try:
             response = call_openrouter(client, opening_context, st.session_state.get("current_model_slug"))
             opening_reply = response.choices[0].message.content
-            campaign_data["messages"].append({
+            msg_entry = {
                 "role": "assistant",
                 "content": opening_reply,
                 "text": opening_reply,
-            })
+            }
+            # Translate opening message if Spanish is active
+            if st.session_state.get("language", "en") == "es":
+                with st.spinner("🌐 Traduciendo al Español..."):
+                    msg_entry["text_es"] = translate_narrative(
+                        client,
+                        opening_reply,
+                        "es",
+                        st.session_state.get("current_model_slug"),
+                    )
+            campaign_data["messages"].append(msg_entry)
             save_db_campaign(supabase, campaign_data)
             st.rerun()
         except Exception as e:
@@ -283,6 +293,18 @@ if submit_action and user_input.strip():
             "text": reply,
             "player_state_before": player_snapshot,
         })
+
+        # Translate GM reply if Spanish mode is active — cache in text_es so
+        # switching language later is instant (no repeated API calls).
+        if st.session_state.get("language", "en") == "es":
+            with st.spinner("🌐 Traduciendo al Español..."):
+                translated = translate_narrative(
+                    client,
+                    reply,
+                    "es",
+                    st.session_state.get("current_model_slug"),
+                )
+                campaign_data["messages"][-1]["text_es"] = translated
 
         # Periodically refresh the campaign summary (every 10 turns)
         if "turn_counter" not in st.session_state:

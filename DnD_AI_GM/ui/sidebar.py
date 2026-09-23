@@ -7,7 +7,7 @@ import json
 
 import streamlit as st
 
-from ai_engine import call_openrouter, update_campaign_summary
+from ai_engine import call_openrouter, update_campaign_summary, SUPPORTED_LANGUAGES, translate_narrative
 from auth import list_all_users, delete_user
 from config import MODEL_OPTIONS
 from database import save_db_campaign, delete_db_campaign
@@ -204,6 +204,47 @@ def render_sidebar(
         )
         st.session_state.current_model_slug = MODEL_OPTIONS[selected_label]
 
+        # --- Language Settings ---
+        st.markdown("---")
+        st.markdown(
+            "<h3 class='rpg-title' style='font-size:1.1rem; color:#fce38a;'>🌐 Language / Idioma</h3>",
+            unsafe_allow_html=True,
+        )
+
+        # Initialize language in session state if not set
+        if "language" not in st.session_state:
+            st.session_state.language = "en"
+
+        lang_col1, lang_col2 = st.columns(2)
+        with lang_col1:
+            en_active = st.session_state.language == "en"
+            if st.button(
+                "🇬🇧 English",
+                use_container_width=True,
+                type="primary" if en_active else "secondary",
+                key="btn_lang_en",
+            ):
+                st.session_state.language = "en"
+                st.rerun()
+        with lang_col2:
+            es_active = st.session_state.language == "es"
+            if st.button(
+                "🇲🇽 Español",
+                use_container_width=True,
+                type="primary" if es_active else "secondary",
+                key="btn_lang_es",
+            ):
+                st.session_state.language = "es"
+                st.rerun()
+
+        if st.session_state.language == "es":
+            st.caption(
+                "✅ Traducción activa — las respuestas del Maestro de Juego "
+                "se traducirán al Español automáticamente."
+            )
+        else:
+            st.caption("✅ Language: English (default).")
+
         # --- Campaign vault status ---
         st.markdown("---")
         st.markdown(
@@ -256,12 +297,21 @@ def render_sidebar(
                         reply = response.choices[0].message.content
                         player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
                         reply = process_and_strip_character_state(reply, campaign_data)
-                        campaign_data["messages"].append({
+                        retry_entry = {
                             "role": "assistant",
                             "content": reply,
                             "text": reply,
                             "player_state_before": player_snapshot,
-                        })
+                        }
+                        # Translate retry response if Spanish mode is active
+                        if st.session_state.get("language", "en") == "es":
+                            retry_entry["text_es"] = translate_narrative(
+                                st.session_state.client,
+                                reply,
+                                "es",
+                                st.session_state.get("current_model_slug"),
+                            )
+                        campaign_data["messages"].append(retry_entry)
                         save_db_campaign(supabase, campaign_data)
                         st.rerun()
                     except Exception as e:
