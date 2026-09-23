@@ -27,6 +27,10 @@ st.set_page_config(
 )
 
 # Local imports (after set_page_config)
+import importlib
+import ai_engine
+importlib.reload(ai_engine)
+
 from auth import init_admin_account
 from config import DEFAULT_CAMPAIGN
 from database import init_supabase, load_db_campaign, save_db_campaign
