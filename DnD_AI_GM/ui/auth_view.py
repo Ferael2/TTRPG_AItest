@@ -99,24 +99,20 @@ def render_auth_page(supabase):
                 if reg_pass != reg_confirm:
                     st.error("⛔ Passphrases do not match. Please verify your entry.")
                 else:
-                    success, msg = register_user(
+                    success, msg, new_user = register_user(
                         supabase=supabase,
                         username=reg_user,
                         password=reg_pass,
                         role="player",
                     )
-                    if success:
-                        st.success(f"✨ {msg}")
-                        # Auto-login upon registration
-                        new_user = get_user(supabase, reg_user)
-                        if new_user:
-                            st.session_state.current_user = new_user
-                            st.session_state.campaign_id = f"campaign_{new_user['username'].lower()}"
-                            if "campaign_data" in st.session_state:
-                                del st.session_state.campaign_data
-                            if "turn_counter" in st.session_state:
-                                del st.session_state.turn_counter
-                            st.rerun()
+                    if success and new_user:
+                        st.session_state.current_user = new_user
+                        st.session_state.campaign_id = f"campaign_{new_user['username'].lower()}"
+                        if "campaign_data" in st.session_state:
+                            del st.session_state.campaign_data
+                        if "turn_counter" in st.session_state:
+                            del st.session_state.turn_counter
+                        st.rerun()
                     else:
                         st.error(f"⛔ {msg}")
 

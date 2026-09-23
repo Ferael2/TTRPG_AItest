@@ -44,30 +44,30 @@ def register_user(
     username: str,
     password: str,
     role: str = "player",
-) -> tuple[bool, str]:
+) -> tuple[bool, str, dict | None]:
     """Registers a new user in the database.
 
     Validates username format, checks for duplicates, and hashes the password.
-    Returns (success_bool, message).
+    Returns (success_bool, message, user_data_dict or None).
     """
     cleaned_user = username.strip()
 
     if not cleaned_user:
-        return False, "Username cannot be empty."
+        return False, "Username cannot be empty.", None
 
     if len(cleaned_user) < 3 or len(cleaned_user) > 30:
-        return False, "Username must be between 3 and 30 characters."
+        return False, "Username must be between 3 and 30 characters.", None
 
     if not re.match(r"^[a-zA-Z0-9_]+$", cleaned_user):
-        return False, "Username can only contain letters, numbers, and underscores."
+        return False, "Username can only contain letters, numbers, and underscores.", None
 
     if len(password) < 4:
-        return False, "Password must be at least 4 characters long."
+        return False, "Password must be at least 4 characters long.", None
 
     # Check if user already exists
     existing = get_user(supabase, cleaned_user)
     if existing:
-        return False, f"An adventurer with the name '{cleaned_user}' already exists in the realm."
+        return False, f"An adventurer with the name '{cleaned_user}' already exists in the realm.", None
 
     # Hash and save
     pwd_hash, salt = hash_password(password)
@@ -80,9 +80,9 @@ def register_user(
     }
 
     if save_user_record(supabase, user_data):
-        return True, f"Welcome to the realm, {cleaned_user}! Account created successfully."
+        return True, f"Welcome to the realm, {cleaned_user}! Account created successfully.", user_data
     else:
-        return False, "Failed to register account with the database. Please try again."
+        return False, "Failed to register account with the database. Please try again.", None
 
 
 def authenticate_user(supabase, username: str, password: str) -> tuple[dict | None, str]:

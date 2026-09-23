@@ -335,5 +335,5 @@ def render_sidebar(
         if st.button("🗑️ Reset Campaign", use_container_width=True):
             from config import DEFAULT_CAMPAIGN
             delete_db_campaign(supabase)
-            st.session_state.campaign_data = DEFAULT_CAMPAIGN.copy()
+            st.session_state.campaign_data = copy.deepcopy(DEFAULT_CAMPAIGN)
             st.rerun()

@@ -57,20 +57,19 @@ supabase = init_supabase(SUPABASE_URL, SUPABASE_KEY)
 client = init_openai_client(OPENROUTER_API_KEY)
 st.session_state.client = client
 
-# Ensure the admin account exists in Supabase
-init_admin_account(supabase)
+# Ensure the admin account exists in Supabase (run once per session)
+if "admin_initialized" not in st.session_state:
+    init_admin_account(supabase)
+    st.session_state.admin_initialized = True
 
 # =============================================================================
-# APPLY THEME
+# AUTHENTICATION GATE & THEME
 # =============================================================================
 
-inject_styles()
+is_authenticated = bool(st.session_state.get("current_user"))
+inject_styles(is_authenticated=is_authenticated)
 
-# =============================================================================
-# AUTHENTICATION GATE (Require login before accessing chat)
-# =============================================================================
-
-if "current_user" not in st.session_state or not st.session_state.current_user:
+if not is_authenticated:
     render_auth_page(supabase)
     st.stop()
 
@@ -89,7 +88,7 @@ if "campaign_id" not in st.session_state:
 
 if "campaign_data" not in st.session_state:
     db_data = load_db_campaign(supabase, st.session_state.campaign_id)
-    st.session_state.campaign_data = db_data if db_data else DEFAULT_CAMPAIGN.copy()
+    st.session_state.campaign_data = db_data if db_data else copy.deepcopy(DEFAULT_CAMPAIGN)
 
 campaign_data = st.session_state.campaign_data
 
@@ -118,6 +117,28 @@ render_sidebar(
 )
 
 # =============================================================================
+# HERO CAMPAIGN BANNER (Always rendered in main area first)
+# =============================================================================
+
+current_location = game_state.get("current_location", "Unknown Lands")
+
+st.markdown(
+    f"""
+<div class="hero-campaign-banner">
+    <div>
+        <h1 class="hero-banner-title">🎲 Chronicles of the Realm</h1>
+        <p class="hero-banner-subtitle">Immersive AI Virtual Tabletop &bull; D&D 5e Solo Adventure</p>
+    </div>
+    <div class="hero-banner-badges">
+        <span class="hero-phase-badge">🏛️ {current_phase_name}</span>
+        <span class="hero-loc-badge">📍 {current_location}</span>
+    </div>
+</div>
+""",
+    unsafe_allow_html=True,
+)
+
+# =============================================================================
 # INITIALIZE CAMPAIGN MEMORY (first-ever load — no messages yet)
 # =============================================================================
 
@@ -138,40 +159,19 @@ if not campaign_data.get("messages"):
         {"role": "user", "content": opening_prompt},
     ]
 
-    try:
-        response = call_openrouter(client, opening_context, st.session_state.get("current_model_slug"))
-        opening_reply = response.choices[0].message.content
-        campaign_data["messages"].append({
-            "role": "assistant",
-            "content": opening_reply,
-            "text": opening_reply,
-        })
-        save_db_campaign(supabase, campaign_data)
-        st.rerun()
-    except Exception as e:
-        st.error(f"Failed to connect to Game Master AI: {e}")
-
-# =============================================================================
-# HERO CAMPAIGN BANNER
-# =============================================================================
-
-current_location = game_state.get("current_location", "Unknown Lands")
-
-st.markdown(
-    f"""
-<div class="hero-campaign-banner">
-    <div>
-        <h1 class="hero-banner-title">🎲 Chronicles of the Realm</h1>
-        <p class="hero-banner-subtitle">Immersive AI Virtual Tabletop &bull; D&D 5e Solo Adventure</p>
-    </div>
-    <div class="hero-banner-badges">
-        <span class="hero-phase-badge">🏛️ {current_phase_name}</span>
-        <span class="hero-loc-badge">📍 {current_location}</span>
-    </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
+    with st.spinner("⚔️ The Game Master is awakening the realm and weaving your chronicle..."):
+        try:
+            response = call_openrouter(client, opening_context, st.session_state.get("current_model_slug"))
+            opening_reply = response.choices[0].message.content
+            campaign_data["messages"].append({
+                "role": "assistant",
+                "content": opening_reply,
+                "text": opening_reply,
+            })
+            save_db_campaign(supabase, campaign_data)
+            st.rerun()
+        except Exception as e:
+            st.error(f"Failed to connect to Game Master AI: {e}")
 
 # =============================================================================
 # CHAT HISTORY
