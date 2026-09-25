@@ -10,7 +10,7 @@ def render_auth_page(supabase):
 
     Mutates st.session_state when login or registration is successful.
     """
-    col_spacer_l, col_main, col_spacer_r = st.columns([0.1, 9.8, 0.1])
+    col_main = st.container()
 
     with col_main:
         st.markdown(

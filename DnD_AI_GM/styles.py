@@ -13,9 +13,21 @@ def inject_styles():
 			padding-right: clamp(0.75rem, 3vw, 2rem);
 		}
 
+		.auth-portal-card {
+			width: 100%;
+			box-sizing: border-box;
+		}
+
 		@media (max-width: 640px) {
 			section[data-testid="stMain"] .block-container {
 				padding: 0.75rem 0.5rem 4rem;
+			}
+
+			.auth-portal-title {
+				font-size: clamp(1.5rem, 8vw, 2.4rem);
+				line-height: 1.2;
+				overflow-wrap: normal;
+				word-break: normal;
 			}
 
 			div[data-testid="stHorizontalBlock"] {
