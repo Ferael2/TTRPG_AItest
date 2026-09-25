@@ -127,7 +127,7 @@ render_sidebar(
 current_location = game_state.get("current_location", "Unknown Lands")
 
 # Use columns to center and constrain the banner so it behaves on mobile and desktop
-col_left, col_center, col_right = st.columns([1, 8, 1])
+col_left, col_center, col_right = st.columns([0.1, 9.8, 0.1])
 with col_center:
     st.markdown(
         f"""
