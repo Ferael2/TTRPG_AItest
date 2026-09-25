@@ -126,7 +126,7 @@ render_sidebar(
 
 current_location = game_state.get("current_location", "Unknown Lands")
 
-# center the hero banner using columns so it remains centered and constrained on mobile
+# Use columns to center and constrain the banner so it behaves on mobile and desktop
 col_left, col_center, col_right = st.columns([1, 8, 1])
 with col_center:
     st.markdown(
