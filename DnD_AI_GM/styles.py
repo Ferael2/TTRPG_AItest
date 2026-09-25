@@ -154,7 +154,7 @@ def inject_styles():
             section[data-testid="stMain"]:has(.auth-portal-card) .block-container {
                 width: 100%;
                 max-width: 100%;
-                padding: 1rem 0.5rem 2rem;
+                padding: 4rem 0.5rem 2rem;
             }
 
             .auth-portal-card {
