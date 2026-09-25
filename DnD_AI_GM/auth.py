@@ -32,6 +32,36 @@ def verify_password(password: str, stored_hash: str, salt: str) -> bool:
     return hmac.compare_digest(candidate_hash, stored_hash)
 
 
+PASSWORD_REQUIREMENTS_TEXT = (
+    "Passphrase must be more than 5 characters long and include at least "
+    "one uppercase letter, one number, and one special symbol (e.g. #%@&!)."
+)
+
+_SPECIAL_CHARS_PATTERN = r"[#%@&!$*^_\-+=?/\\|~.,:;()\[\]{}<>\"']"
+
+
+def validate_password_strength(password: str) -> tuple[bool, str]:
+    """Checks a candidate password against the realm's passphrase requirements.
+
+    Requires: more than 5 characters, at least one uppercase letter,
+    at least one digit, and at least one special symbol.
+    Returns (is_valid, message).
+    """
+    if len(password) <= 5:
+        return False, "Passphrase must be longer than 5 characters."
+
+    if not re.search(r"[A-Z]", password):
+        return False, "Passphrase must include at least one capital letter."
+
+    if not re.search(r"[0-9]", password):
+        return False, "Passphrase must include at least one number."
+
+    if not re.search(_SPECIAL_CHARS_PATTERN, password):
+        return False, "Passphrase must include at least one special symbol (e.g. #%@&!)."
+
+    return True, "Passphrase meets the realm's requirements."
+
+
 def get_user(supabase, username: str) -> dict | None:
     """Retrieves a user by username from the database."""
     if not username:
@@ -61,8 +91,9 @@ def register_user(
     if not re.match(r"^[a-zA-Z0-9_]+$", cleaned_user):
         return False, "Username can only contain letters, numbers, and underscores.", None
 
-    if len(password) < 4:
-        return False, "Password must be at least 4 characters long.", None
+    is_strong, strength_msg = validate_password_strength(password)
+    if not is_strong:
+        return False, strength_msg, None
 
     # Check if user already exists
     existing = get_user(supabase, cleaned_user)
@@ -110,7 +141,7 @@ def authenticate_user(supabase, username: str, password: str) -> tuple[dict | No
     return None, "Invalid username or password."
 
 
-def init_admin_account(supabase, default_password: str = "admin123") -> None:
+def init_admin_account(supabase, default_password: str = "Admin#123") -> None:
     """Ensures the admin account exists in Supabase.
 
     If 'admin' does not exist, registers it with role='admin' and default_password.

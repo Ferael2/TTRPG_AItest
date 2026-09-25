@@ -2,7 +2,7 @@
 # Renders the Dark Fantasy login and registration gateway.
 
 import streamlit as st
-from auth import authenticate_user, register_user, get_user
+from auth import authenticate_user, register_user, get_user, PASSWORD_REQUIREMENTS_TEXT
 
 
 def render_auth_page(supabase):
@@ -84,8 +84,12 @@ def render_auth_page(supabase):
                 reg_pass = st.text_input(
                     "Choose Passphrase",
                     type="password",
-                    placeholder="Minimum 4 characters",
+                    placeholder="6+ chars, 1 capital, 1 number, 1 symbol",
                     key="reg_pass_input",
+                )
+                st.markdown(
+                    f"<p style='color: #94a3b8; font-size: 0.75rem; margin-top: -8px; margin-bottom: 10px;'>🔒 {PASSWORD_REQUIREMENTS_TEXT}</p>",
+                    unsafe_allow_html=True,
                 )
                 reg_confirm = st.text_input(
                     "Confirm Passphrase",

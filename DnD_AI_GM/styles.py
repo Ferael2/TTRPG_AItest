@@ -15,6 +15,37 @@ html, body, [data-testid="stAppViewContainer"], [data-testid="stMain"] {
     color: #e2e8f0 !important;
 }
 
+/* Responsive base: prevent text from clipping/overflowing on narrow screens */
+*, *::before, *::after {
+    box-sizing: border-box;
+}
+
+body, p, span, div, h1, h2, h3, h4, h5, h6, label,
+.char-name-text, .hero-banner-title, .hero-banner-subtitle,
+.auth-portal-title, .auth-portal-subtitle, .user-profile-name,
+.inv-item-name, .spell-item-row, .tag-pill, .hp-meta, .s-name, .s-val {
+    overflow-wrap: break-word !important;
+    word-wrap: break-word !important;
+    word-break: break-word !important;
+    min-width: 0 !important;
+}
+
+/* Flex/grid children collapse to their content's intrinsic width by default,
+   which silently clips or overflows sibling text on phones/small laptops.
+   Forcing min-width: 0 lets them shrink and wrap normally instead. */
+.char-name-badge, .char-name-badge > *,
+.vitals-row, .vitals-row > *,
+.hp-meta, .hp-meta > *,
+.hero-campaign-banner, .hero-campaign-banner > *,
+.hero-banner-badges, .hero-banner-badges > *,
+.inv-item-row, .inv-item-row > *,
+.spell-item-row, .spell-item-row > *,
+.user-profile-card, .user-profile-card > *,
+.user-profile-info, .user-profile-info > *,
+.quick-action-bar, .quick-action-bar > * {
+    min-width: 0;
+}
+
 /* Atmospheric subtle vignette */
 [data-testid="stAppViewContainer"]::before {
     content: '';
@@ -603,6 +634,98 @@ div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button:hover {
     text-transform: uppercase;
     letter-spacing: 0.06em;
     border: 1px solid rgba(52, 211, 153, 0.4);
+}
+
+/* --- RESPONSIVE ADJUSTMENTS --- */
+/* Narrow laptop / tablet windows: tighten spacing, keep everything on-screen */
+@media (max-width: 900px) {
+    .main .block-container {
+        max-width: 100% !important;
+        padding-left: 1rem !important;
+        padding-right: 1rem !important;
+    }
+
+    .hero-banner-title {
+        font-size: 1.3rem;
+    }
+
+    .auth-portal-title {
+        font-size: 1.4rem;
+        letter-spacing: 0.05em;
+    }
+}
+
+/* Phone-width screens: shrink headers/badges and stack flex rows so labels
+   have room to wrap instead of being cut off */
+@media (max-width: 600px) {
+    .main .block-container {
+        padding-left: 0.75rem !important;
+        padding-right: 0.75rem !important;
+        padding-top: 1rem !important;
+    }
+
+    .hero-campaign-banner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 12px 14px;
+    }
+
+    .hero-banner-title {
+        font-size: 1.15rem;
+        letter-spacing: 0.02em;
+    }
+
+    .hero-banner-subtitle {
+        font-size: 0.78rem;
+    }
+
+    .auth-portal-card {
+        padding: 20px 16px;
+        overflow: visible;
+    }
+
+    .auth-portal-title {
+        font-size: 1.2rem;
+        letter-spacing: 0.03em;
+    }
+
+    .auth-portal-subtitle {
+        font-size: 0.8rem;
+    }
+
+    .char-name-badge {
+        flex-wrap: wrap;
+    }
+
+    .char-name-text {
+        font-size: 1.05rem;
+    }
+
+    .vitals-row {
+        flex-wrap: wrap;
+    }
+
+    .stats-grid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 6px;
+    }
+
+    .stat-box {
+        padding: 5px 2px;
+    }
+
+    .stat-box .s-name {
+        font-size: 0.58rem;
+    }
+
+    .user-profile-card {
+        flex-wrap: wrap;
+    }
+
+    .quick-action-bar {
+        padding: 6px 8px;
+        gap: 6px;
+    }
 }
 </style>
 """
