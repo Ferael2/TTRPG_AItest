@@ -18,6 +18,7 @@ def render_auth_page(supabase):
             <div class="auth-portal-card">
                 <div class="auth-portal-header">
                     <div class="auth-portal-emblem">🎲</div>
+                    <p class="auth-portal-kicker">YOUR NEXT CHRONICLE BEGINS HERE</p>
                     <h1 class="auth-portal-title">CHRONICLES OF THE REALM</h1>
                     <p class="auth-portal-subtitle">Identify yourself, traveller, before consulting the Game Master.</p>
                 </div>
