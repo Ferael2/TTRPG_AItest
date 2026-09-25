@@ -126,21 +126,26 @@ render_sidebar(
 
 current_location = game_state.get("current_location", "Unknown Lands")
 
-st.markdown(
-    f"""
-<div class="hero-campaign-banner">
-    <div>
-        <h1 class="hero-banner-title">🎲 Chronicles of the Realm</h1>
-        <p class="hero-banner-subtitle">Immersive AI Virtual Tabletop &bull; D&D 5e Solo Adventure</p>
-    </div>
-    <div class="hero-banner-badges">
-        <span class="hero-phase-badge">🏛️ {current_phase_name}</span>
-        <span class="hero-loc-badge">📍 {current_location}</span>
-    </div>
-</div>
-""",
-    unsafe_allow_html=True,
-)
+# center the hero banner using columns so it remains centered and constrained on mobile
+col_left, col_center, col_right = st.columns([1, 8, 1])
+with col_center:
+    st.markdown(
+        f"""
+        <div class="responsive-wrapper">
+            <div class="hero-campaign-banner">
+                <div>
+                    <h1 class="hero-banner-title">🎲 Chronicles of the Realm</h1>
+                    <p class="hero-banner-subtitle">Immersive AI Virtual Tabletop &bull; D&D 5e Solo Adventure</p>
+                </div>
+                <div class="hero-banner-badges">
+                    <span class="hero-phase-badge">🏛️ {current_phase_name}</span>
+                    <span class="hero-loc-badge">📍 {current_location}</span>
+                </div>
+            </div>
+        </div>
+        """,
+        unsafe_allow_html=True,
+    )
 
 # =============================================================================
 # INITIALIZE CAMPAIGN MEMORY (first-ever load — no messages yet)
