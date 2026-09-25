@@ -727,6 +727,78 @@ div[data-testid="stForm"] div[data-testid="stFormSubmitButton"] > button:hover {
         gap: 6px;
     }
 }
+
+/* --- RESPONSIVE HERO OVERRIDES (mobile-friendly) --- */
+
+/* Centered wrapper with a sane max width so large headings don't become very tall narrow columns */
+.responsive-wrapper {
+  margin: 0 auto;
+  padding: 0 1rem;
+  max-width: 920px; /* desktop cap; reduces extremely long narrow columns on mobile */
+  box-sizing: border-box;
+}
+
+/* Cap the hero banner width so it never becomes a skinny column */
+.hero-campaign-banner {
+  width: 100%;
+  max-width: 720px;
+  margin: 0 auto;
+  box-sizing: border-box;
+}
+
+/* Use responsive font sizing so the title scales but never explodes on phones. Also avoid forced word-breaks. */
+.hero-banner-title {
+  font-family: 'Cinzel', serif;
+  font-weight: 800;
+  color: #f7d774;
+  margin: 0;
+  line-height: 1.02;
+  letter-spacing: 0.03em;
+  text-shadow: 0 2px 10px rgba(212, 175, 55, 0.25);
+  font-size: clamp(20px, 6.6vw, 40px); /* min 20px, scales with viewport, max 40px */
+  word-break: normal !important;
+  white-space: pre-wrap !important; /* keep intended line breaks but allow wrapping */
+}
+
+/* Slightly larger subtitle on phones but constrained */
+.hero-banner-subtitle {
+  font-size: clamp(12px, 2.6vw, 16px);
+  margin-top: 6px;
+  color: #94a3b8;
+}
+
+/* Ensure badges stay to the right on wide screens but wrap cleanly on narrow screens */
+.hero-banner-badges {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+/* Mobile-specific tweak: stack banner content vertically and align center for small widths */
+@media (max-width: 600px) {
+  .hero-campaign-banner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 12px 10px;
+  }
+
+  .hero-banner-title {
+    text-align: center;
+    font-size: clamp(18px, 9vw, 32px);
+  }
+
+  .hero-banner-subtitle {
+    text-align: center;
+    font-size: 13px;
+  }
+
+  .main .block-container {
+    padding-left: 0.6rem !important;
+    padding-right: 0.6rem !important;
+  }
+}
 </style>
 """
 
