@@ -17,6 +17,134 @@ def inject_styles():
             --realm-muted: #a7a9b1;
         }
 
+        [data-testid="stSidebar"] .character-sheet-card {
+            box-sizing: border-box;
+            margin: 0.4rem 0 0.75rem;
+            padding: 0.75rem;
+            border: 1px solid rgba(212, 175, 55, 0.25);
+            border-radius: 7px;
+            background: linear-gradient(145deg, rgba(27, 32, 42, 0.95), rgba(20, 24, 33, 0.95));
+        }
+
+        [data-testid="stSidebar"] .char-name-badge,
+        [data-testid="stSidebar"] .char-tags,
+        [data-testid="stSidebar"] .hp-meta {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 0.4rem;
+        }
+
+        [data-testid="stSidebar"] .char-name-text {
+            min-width: 0;
+            color: #f4efe2;
+            font-family: 'Cinzel', Georgia, serif;
+            font-size: 1rem;
+            font-weight: 600;
+            overflow-wrap: anywhere;
+        }
+
+        [data-testid="stSidebar"] .char-level-badge {
+            display: flex;
+            flex: 0 0 auto;
+            align-items: baseline;
+            gap: 0.25rem;
+            color: var(--realm-gold-pale);
+            font-size: 0.78rem;
+        }
+
+        [data-testid="stSidebar"] .char-tags {
+            justify-content: flex-start;
+            flex-wrap: wrap;
+            margin: 0.45rem 0 0.6rem;
+        }
+
+        [data-testid="stSidebar"] .tag-pill {
+            padding: 0.15rem 0.4rem;
+            border: 1px solid rgba(212, 175, 55, 0.2);
+            border-radius: 4px;
+            color: #e5dfd0;
+            font-size: 0.7rem;
+            overflow-wrap: anywhere;
+        }
+
+        [data-testid="stSidebar"] .vitals-row {
+            display: grid;
+            grid-template-columns: minmax(0, 1fr) auto;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        [data-testid="stSidebar"] .hp-meta {
+            font-size: 0.72rem;
+        }
+
+        [data-testid="stSidebar"] .hp-bar-bg {
+            height: 6px;
+            margin-top: 0.3rem;
+            overflow: hidden;
+            border-radius: 4px;
+            background: #303541;
+        }
+
+        [data-testid="stSidebar"] .hp-bar-fill {
+            height: 100%;
+            border-radius: inherit;
+        }
+
+        [data-testid="stSidebar"] .ac-shield-box {
+            min-width: 2.2rem;
+            padding: 0.2rem;
+            border: 1px solid rgba(212, 175, 55, 0.3);
+            border-radius: 5px;
+            text-align: center;
+        }
+
+        [data-testid="stSidebar"] .ac-num {
+            color: #f4efe2;
+            font-size: 1rem;
+            font-weight: 700;
+        }
+
+        [data-testid="stSidebar"] .ac-label {
+            color: var(--realm-muted);
+            font-size: 0.62rem;
+        }
+
+        [data-testid="stSidebar"] .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: 0.35rem;
+            margin-top: 0.65rem;
+        }
+
+        [data-testid="stSidebar"] .stat-box {
+            min-width: 0;
+            padding: 0.3rem 0.15rem;
+            border: 1px solid rgba(255, 255, 255, 0.08);
+            border-radius: 5px;
+            background: rgba(255, 255, 255, 0.035);
+            text-align: center;
+        }
+
+        [data-testid="stSidebar"] .s-name {
+            color: var(--realm-muted);
+            font-size: 0.65rem;
+            font-weight: 600;
+        }
+
+        [data-testid="stSidebar"] .s-val {
+            color: #f4efe2;
+            font-size: 0.95rem;
+            font-weight: 700;
+            line-height: 1.15;
+        }
+
+        [data-testid="stSidebar"] .s-mod {
+            color: var(--realm-gold-pale);
+            font-size: 0.68rem;
+        }
+
         html, body, [data-testid="stAppViewContainer"] {
             font-family: 'Source Sans 3', sans-serif;
         }

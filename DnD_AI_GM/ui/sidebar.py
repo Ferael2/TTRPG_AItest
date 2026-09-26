@@ -63,7 +63,7 @@ def render_sidebar(
 
         st.markdown("<hr style='margin: 8px 0; border-color: rgba(212, 175, 55, 0.2);'>", unsafe_allow_html=True)
 
-        with st.expander("📖 New to D&D? Character guide", expanded=False):
+        with st.popover("📖 Character guide", use_container_width=True):
             st.markdown(
                 "**Start with an idea**\n\n"
                 "A hero, a mystery, a personality, or even a favorite fantasy trope is enough. "
