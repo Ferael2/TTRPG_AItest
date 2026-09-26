@@ -63,6 +63,32 @@ def render_sidebar(
 
         st.markdown("<hr style='margin: 8px 0; border-color: rgba(212, 175, 55, 0.2);'>", unsafe_allow_html=True)
 
+        with st.expander("📖 New to D&D? Character guide", expanded=False):
+            st.markdown(
+                "**Start with an idea**\n\n"
+                "A hero, a mystery, a personality, or even a favorite fantasy trope is enough. "
+                "Tell the Game Master what sounds fun; you do not need to know the rules."
+            )
+            st.markdown(
+                "**Your character choices**\n\n"
+                "- **Species** (sometimes called ancestry): your character's heritage and traits. "
+                "Common examples include human, elf, dwarf, halfling, tiefling, and dragonborn.\n"
+                "- **Class**: your character's main abilities and approach. A fighter focuses on "
+                "weapons, a rogue on stealth and skills, a cleric on divine magic, and a wizard "
+                "on learned spells.\n"
+                "- **Ability scores**: Strength is force, Dexterity is agility, Constitution is "
+                "stamina, Intelligence is learning, Wisdom is awareness, and Charisma is presence.\n"
+                "- **Background and proficiencies**: what your character did before the adventure "
+                "and which skills they are especially good at.\n"
+                "- **Equipment and spells**: your starting gear and, for some classes, magic. "
+                "The Game Master can walk you through these choices."
+            )
+            st.caption(
+                "These are examples, not a required list. Options can vary with the campaign; "
+                "ask the Game Master about any idea you have. You can also ask for a simple "
+                "starter character or change your mind."
+            )
+
         st.markdown(
             "<h2 class='rpg-title' style='color:#fce38a; margin-bottom:4px;'>⚔️ Character Sheet</h2>",
             unsafe_allow_html=True,
