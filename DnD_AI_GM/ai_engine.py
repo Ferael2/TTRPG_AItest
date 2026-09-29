@@ -49,7 +49,7 @@ def call_openrouter(client: OpenAI, messages: list, selected_model_slug: str | N
     until a successful response is obtained.  Raises the last exception if all models fail.
     """
     fallback_queue = []
-    if selected_model_slug:
+    if selected_model_slug in MODEL_OPTIONS.values():
         fallback_queue.append(selected_model_slug)
 
     for slug in MODEL_OPTIONS.values():

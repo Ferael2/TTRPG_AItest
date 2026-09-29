@@ -3,12 +3,11 @@
 
 # --- AI MODEL OPTIONS ---
 
-# Verified, active model identifiers with automatic fallback
+# Free OpenRouter models suitable for general chat and creative roleplay.
 MODEL_OPTIONS = {
-    "🧠 Meta Llama 3.3-70B (Best Instruction & Detail)": "meta-llama/llama-3.3-70b-instruct",
-    "🎨 Qwen 3.5-27B (Rich Context & Storytelling)": "qwen/qwen3.5-27b",
-    "⚡ DeepSeek Chat (Creative Dialogue & Roleplay)": "deepseek/deepseek-chat",
-    "🌐 OpenRouter Auto (Smart Provider Fallback)": "openrouter/auto"
+    "OpenRouter Free Router (any available free model)": "openrouter/free",
+    "Qwen 3.8 27B (free, general purpose)": "qwen/qwen3.8-27b:free",
+    "Gemma 4 31B (free, instruction following)": "google/gemma-4-31b-it:free",
 }
 
 # Maximum number of recent conversation turns sent to the AI on each call.
