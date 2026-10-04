@@ -42,11 +42,16 @@ def init_openai_client(api_key: str) -> OpenAI:
     return st.session_state.client
 
 
-def call_openrouter(client: OpenAI, messages: list, selected_model_slug: str | None = None):
+def call_openrouter(
+    client: OpenAI,
+    messages: list,
+    selected_model_slug: str | None = None,
+    max_tokens: int = 3000,
+):
     """Calls the OpenRouter API with automatic model fallback.
 
     Tries *selected_model_slug* first, then falls through the full MODEL_OPTIONS list
-    until a successful response is obtained.  Raises the last exception if all models fail.
+    until a successful response is obtained. Raises the last exception if all models fail.
     """
     fallback_queue = []
     if selected_model_slug in MODEL_OPTIONS.values():
@@ -62,7 +67,7 @@ def call_openrouter(client: OpenAI, messages: list, selected_model_slug: str | N
             return client.chat.completions.create(
                 model=model_name,
                 messages=messages,
-                max_tokens=1500
+                max_tokens=max_tokens,
             )
         except Exception as e:
             last_error = e

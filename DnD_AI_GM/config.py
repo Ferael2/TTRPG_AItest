@@ -5,9 +5,13 @@
 
 # Free OpenRouter models suitable for general chat and creative roleplay.
 MODEL_OPTIONS = {
-    "OpenRouter Free Router (any available free model)": "openrouter/free",
+    "Gemma 4 31B (free, best instruction following)": "google/gemma-4-31b-it:free",
+    "Nemotron 3 Ultra 550B (free, deep narrative)": "nvidia/nemotron-3-ultra-550b-a55b:free",
+    "Gemma 4 26B A4B (free, fast & snappy)": "google/gemma-4-26b-a4b-it:free",
+    "Nemotron 3 Super 120B (free, balanced roleplay)": "nvidia/nemotron-3-super-120b-a12b:free",
+    "Thinking Machines: Inkling (free, creative)": "thinkingmachines/inkling:free",
     "Qwen 3.8 27B (free, general purpose)": "qwen/qwen3.8-27b:free",
-    "Gemma 4 31B (free, instruction following)": "google/gemma-4-31b-it:free",
+    "OpenRouter Free Router (automatic)": "openrouter/free",
 }
 
 # Maximum number of recent conversation turns sent to the AI on each call.

@@ -225,10 +225,19 @@ def render_sidebar(
             "<h3 class='rpg-title' style='font-size:1.1rem; color:#fce38a;'>🤖 AI Game Master Model</h3>",
             unsafe_allow_html=True,
         )
+        options = list(MODEL_OPTIONS.keys())
+        current_slug = st.session_state.get("current_model_slug")
+        default_idx = 0
+        if current_slug:
+            for i, label in enumerate(options):
+                if MODEL_OPTIONS[label] == current_slug:
+                    default_idx = i
+                    break
+
         selected_label = st.selectbox(
             "Choose Game Master AI Model:",
-            options=list(MODEL_OPTIONS.keys()),
-            index=0,
+            options=options,
+            index=default_idx,
             label_visibility="collapsed",
         )
         st.session_state.current_model_slug = MODEL_OPTIONS[selected_label]
