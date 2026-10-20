@@ -35,7 +35,7 @@ from auth import init_admin_account
 from config import DEFAULT_CAMPAIGN
 from database import init_supabase, load_db_campaign, save_db_campaign
 from ai_engine import init_openai_client, call_openrouter, build_system_prompt, update_campaign_summary, translate_narrative
-from state_helpers import process_and_strip_character_state
+from state_helpers import process_and_strip_character_state, sync_character_mechanics_fallback
 from styles import inject_styles
 from ui.auth_view import render_auth_page
 from ui.sidebar import render_sidebar
@@ -264,9 +264,9 @@ if submit_action and user_input.strip():
             reminder_prompt = {
                 "role": "system",
                 "content": (
-                    "REMINDER: Always write in 2nd person ('You...'). "
-                    "Maintain strict continuity with the current scene. "
-                    "Do not shift location or perspective abruptly."
+                    "REMINDER:\n"
+                    "1. Always write in 2nd person ('You...'). Maintain strict continuity with the scene.\n"
+                    "2. STATE TRACKING: If the player casts a leveled spell, takes damage/heals, equips/acquires/removes armor or weapons, or takes a rest, YOU MUST APPEND AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON block at the very end of your response to sync the UI."
                 ),
             }
 
@@ -295,6 +295,7 @@ if submit_action and user_input.strip():
         # that a future Rewind or Edit GM action can restore it cleanly.
         player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
         reply = process_and_strip_character_state(reply, campaign_data)
+        sync_character_mechanics_fallback(clean_user_input, reply, campaign_data)
 
         # Extract WORLD_CODEX if present (Phase 1 → Phase 2 transition)
         if "<WORLD_CODEX>" in reply.upper():

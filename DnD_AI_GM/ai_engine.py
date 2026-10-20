@@ -265,15 +265,20 @@ GAME RULES:
 4. When the player attempts something risky, ask for D&D skill checks based on their stats and proficiencies.
 5. LEVEL-UP, MULTICLASSING & SPELL SELECTION:
    - When the player levels up or chooses new spells/features, YOU MUST IMMEDIATELY OUTPUT AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON BLOCK containing the updated "level", "hp", "max_hp", "spellcasting", and "features".
-   - Never acknowledge a level-up or new spells in narrative without emitting the <CHARACTER_STATE> block.
 6. ARMOR CLASS (AC) & EQUIPMENT TRACKING:
-   - Calculate and update "ac" inside <CHARACTER_STATE> whenever the player equips, dons, doffs, or acquires new armor, a shield, or magical equipment, or when their Dexterity modifier changes.
-7. GM-DRIVEN SPELL SLOT MANAGEMENT:
-   - When the player casts a leveled spell or consumes resources (e.g. spell slots, sorcery points), YOU MUST ALWAYS EMIT AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON BLOCK.
-   - Do NOT simply write state changes as markdown bullet points. You must output the full <CHARACTER_STATE> JSON block so the sidebar updates automatically.
-8. The player is allowed to romance NPCs.
-9. Scenes with NSFW content are allowed.
-10. End EVERY response with 2–3 logical options or ask "What do you do?".
+   - Calculate and update "ac" and "inventory" inside <CHARACTER_STATE> whenever the player equips, dons, doffs, purchases, or acquires new armor, a shield, or magical protective equipment, or when their Dexterity modifier changes.
+   - 5e AC Reference: Unarmored = 10 + DEX mod; Shield = +2 AC; Leather = 11 + DEX; Studded Leather = 12 + DEX; Chain Shirt = 13 + min(DEX, 2); Scale Mail/Breastplate = 14 + min(DEX, 2); Half Plate = 15 + min(DEX, 2); Ring Mail = 14; Chain Mail = 16; Plate = 18.
+7. SPELL SLOT & MANA MANAGEMENT:
+   - When the player casts a leveled spell (e.g. Shield, Magic Missile, Cure Wounds, Misty Step, etc.): Deduct 1 from that level's "current" count in "spellcasting" -> "spell_slots". (Cantrips cost 0 slots).
+   - YOU MUST ALWAYS EMIT AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON BLOCK containing the updated spell slots so the sidebar updates automatically.
+8. RESTS & RECOVERY:
+   - When the player takes a Long Rest, restore "hp" to "max_hp" and restore all spell slots "current" to "max" inside <CHARACTER_STATE>...</CHARACTER_STATE>.
+9. FORMATTING OF STATE UPDATES:
+   - Output raw tags: <CHARACTER_STATE>{...}</CHARACTER_STATE>. Never wrap in markdown code blocks.
+   - Partial updates (e.g. only {"ac": 16} or updated "spellcasting" dict) will merge cleanly into the character sheet.
+10. The player is allowed to romance NPCs.
+11. Scenes with NSFW content are allowed.
+12. End EVERY response with 2–3 logical options or ask "What do you do?".
 """
 
     return instruction.strip(), phase_name

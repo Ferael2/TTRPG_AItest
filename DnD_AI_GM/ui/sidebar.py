@@ -15,7 +15,7 @@ from ai_engine import call_openrouter, update_campaign_summary, SUPPORTED_LANGUA
 from auth import list_all_users, delete_user
 from config import MODEL_OPTIONS
 from database import save_db_campaign, delete_db_campaign
-from state_helpers import calculate_mod_str, process_and_strip_character_state
+from state_helpers import calculate_mod_str, process_and_strip_character_state, sync_character_mechanics_fallback
 
 
 def render_sidebar(
@@ -154,6 +154,42 @@ def render_sidebar(
         )
         st.markdown(card_html, unsafe_allow_html=True)
 
+        # --- Quick Stat Adjuster Popover for HP & AC ---
+        with st.popover("⚙️ Quick Adjust HP & AC", use_container_width=True):
+            st.markdown("<p style='font-size:0.85rem; font-weight:600; margin-bottom:6px;'>🛡️ Vitality & Armor Adjuster</p>", unsafe_allow_html=True)
+            col_hp_in, col_ac_in = st.columns(2)
+            with col_hp_in:
+                new_hp = st.number_input(
+                    "Current HP",
+                    min_value=0,
+                    max_value=max(1, max_hp * 2),
+                    value=int(hp),
+                    step=1,
+                    key="quick_input_hp",
+                )
+            with col_ac_in:
+                new_ac = st.number_input(
+                    "Armor Class (AC)",
+                    min_value=1,
+                    max_value=35,
+                    value=int(ac),
+                    step=1,
+                    key="quick_input_ac",
+                )
+
+            col_save_stat, col_heal_max = st.columns(2)
+            with col_save_stat:
+                if st.button("💾 Save Stats", use_container_width=True, key="btn_save_quick_stats"):
+                    player_info["hp"] = new_hp
+                    player_info["ac"] = new_ac
+                    save_db_campaign(supabase, campaign_data)
+                    st.rerun()
+            with col_heal_max:
+                if st.button("❤️ Max HP", use_container_width=True, key="btn_quick_max_hp"):
+                    player_info["hp"] = max_hp
+                    save_db_campaign(supabase, campaign_data)
+                    st.rerun()
+
         # --- Inventory expander ---
         with st.expander("🎒 Equipment & Inventory", expanded=False):
             inventory = player_info.get("inventory", [])
@@ -190,12 +226,47 @@ def render_sidebar(
                             + "<span class='mana-orb-empty'></span>" * max(0, mx - cur)
                         )
                         slot_card = (
-                            f'<div class="spell-slot-card">'
+                            f'<div class="spell-slot-card" style="margin-bottom:0;">'
                             f'<span style="font-size:0.8rem; font-weight:600;">{lvl_title}</span>'
                             f'<div>{orbs} <span style="font-size:0.8rem; color:#94a3b8;">({cur}/{mx})</span></div>'
                             f'</div>'
                         )
-                        st.markdown(slot_card, unsafe_allow_html=True)
+                        col_card, col_minus, col_plus = st.columns([0.64, 0.18, 0.18])
+                        with col_card:
+                            st.markdown(slot_card, unsafe_allow_html=True)
+                        with col_minus:
+                            if st.button("➖", key=f"btn_spend_slot_{slot_lvl}", help=f"Cast spell / expend 1 {lvl_title} slot"):
+                                if cur > 0:
+                                    slot_info["current"] = cur - 1
+                                    save_db_campaign(supabase, campaign_data)
+                                    st.rerun()
+                        with col_plus:
+                            if st.button("➕", key=f"btn_restore_slot_{slot_lvl}", help=f"Restore 1 {lvl_title} slot"):
+                                if cur < mx:
+                                    slot_info["current"] = cur + 1
+                                    save_db_campaign(supabase, campaign_data)
+                                    st.rerun()
+
+                    # Rest & restore buttons
+                    st.markdown("<div style='height:6px;'></div>", unsafe_allow_html=True)
+                    col_rest1, col_rest2 = st.columns(2)
+                    with col_rest1:
+                        if st.button("🏕️ Long Rest", use_container_width=True, key="btn_rest_slots_full"):
+                            player_info["hp"] = max_hp
+                            for _, s in slots.items():
+                                if isinstance(s, dict) and "max" in s:
+                                    s["current"] = s["max"]
+                            save_db_campaign(supabase, campaign_data)
+                            st.toast("🏕️ Long Rest taken: HP and all spell slots restored!")
+                            st.rerun()
+                    with col_rest2:
+                        if st.button("⚡ Restore Slots", use_container_width=True, key="btn_restore_all_slots"):
+                            for _, s in slots.items():
+                                if isinstance(s, dict) and "max" in s:
+                                    s["current"] = s["max"]
+                            save_db_campaign(supabase, campaign_data)
+                            st.toast("✨ All spell slots replenished!")
+                            st.rerun()
 
                 if cantrips:
                     st.markdown("**Cantrips (At-Will):**")
@@ -309,9 +380,9 @@ def render_sidebar(
                     reminder_prompt = {
                         "role": "system",
                         "content": (
-                            "REMINDER: Always write in 2nd person ('You...'). "
-                            "Maintain strict continuity with the current scene. "
-                            "Do not shift location or perspective abruptly."
+                            "REMINDER:\n"
+                            "1. Always write in 2nd person ('You...'). Maintain strict continuity with the scene.\n"
+                            "2. STATE TRACKING: If the player casts a leveled spell, takes damage/heals, equips/acquires/removes armor or weapons, or takes a rest, YOU MUST APPEND AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON block at the very end of your response to sync the UI."
                         ),
                     }
 
@@ -336,6 +407,11 @@ def render_sidebar(
                         reply = response.choices[0].message.content
                         player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
                         reply = process_and_strip_character_state(reply, campaign_data)
+
+                        # Sync mechanics fallback for retry turn
+                        last_user_msg = messages_list[-1]
+                        user_text = last_user_msg.get("content") or last_user_msg.get("text", "")
+                        sync_character_mechanics_fallback(user_text, reply, campaign_data)
 
                         if "<WORLD_CODEX>" in reply.upper():
                             pattern_codex = r"<WORLD_CODEX>(.*?)</WORLD_CODEX>"

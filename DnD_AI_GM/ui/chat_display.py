@@ -9,7 +9,7 @@ import streamlit.components.v1 as components
 
 from ai_engine import call_openrouter, translate_narrative
 from database import save_db_campaign
-from state_helpers import process_and_strip_character_state, restore_player_state_from_snapshot
+from state_helpers import process_and_strip_character_state, restore_player_state_from_snapshot, sync_character_mechanics_fallback
 
 # Number of most-recent messages shown before the "Full History" checkbox is used.
 DISPLAY_LIMIT = 15
@@ -103,9 +103,9 @@ def _build_api_messages(campaign_data: dict, system_instruction: str, max_turns:
     reminder_prompt = {
         "role": "system",
         "content": (
-            "REMINDER: Always write in 2nd person ('You...'). "
-            "Maintain strict continuity with the current scene. "
-            "Do not shift location or perspective abruptly."
+            "REMINDER:\n"
+            "1. Always write in 2nd person ('You...'). Maintain strict continuity with the scene.\n"
+            "2. STATE TRACKING: If the player casts a leveled spell, takes damage/heals, equips/acquires/removes armor or weapons, or takes a rest, YOU MUST APPEND AN UPDATED <CHARACTER_STATE>...</CHARACTER_STATE> JSON block at the very end of your response to sync the UI."
         ),
     }
     return (
@@ -192,6 +192,7 @@ def _render_rewind_popover(
                     # Snapshot the restored player state before the new reply's state changes are applied
                     player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
                     reply = process_and_strip_character_state(reply, campaign_data)
+                    sync_character_mechanics_fallback(new_text, reply, campaign_data)
 
                     # Extract WORLD_CODEX if present (Phase 1 -> Phase 2 transition)
                     if "<WORLD_CODEX>" in reply.upper():
