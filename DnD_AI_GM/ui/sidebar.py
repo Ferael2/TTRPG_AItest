@@ -97,8 +97,14 @@ def render_sidebar(
             unsafe_allow_html=True,
         )
 
+        if not isinstance(game_state, dict):
+            game_state = {}
+        player_info = game_state.get("player")
         if not isinstance(player_info, dict):
             player_info = {}
+            game_state["player"] = player_info
+            if isinstance(campaign_data, dict):
+                campaign_data.setdefault("campaign_state", {})["player"] = player_info
         name = player_info.get("name") or "Hero"
         species = player_info.get("species") or "Unknown"
         p_class = player_info.get("class") or "Adventurer"
