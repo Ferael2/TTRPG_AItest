@@ -274,8 +274,8 @@ GAME RULES:
 8. RESTS & RECOVERY:
    - When the player takes a Long Rest, restore "hp" to "max_hp" and restore all spell slots "current" to "max" inside <CHARACTER_STATE>...</CHARACTER_STATE>.
 9. FORMATTING OF STATE UPDATES:
-   - Output raw tags: <CHARACTER_STATE>{...}</CHARACTER_STATE>. Never wrap in markdown code blocks.
-   - Partial updates (e.g. only {"ac": 16} or updated "spellcasting" dict) will merge cleanly into the character sheet.
+   - Output raw tags: <CHARACTER_STATE>{{...}}</CHARACTER_STATE>. Never wrap in markdown code blocks.
+   - Partial updates (e.g. only {{"ac": 16}} or updated "spellcasting" dict) will merge cleanly into the character sheet.
 10. The player is allowed to romance NPCs.
 11. Scenes with NSFW content are allowed.
 12. End EVERY response with 2–3 logical options or ask "What do you do?".
