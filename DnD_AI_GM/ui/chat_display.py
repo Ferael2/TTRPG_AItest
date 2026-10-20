@@ -97,7 +97,7 @@ def render_chat(campaign_data: dict, supabase, system_instruction: str):
 # Private helpers
 # ---------------------------------------------------------------------------
 
-def _build_api_messages(campaign_data: dict, system_instruction: str, max_turns: int = 8) -> list:
+def _build_api_messages(campaign_data: dict, system_instruction: str, max_turns: int = 16) -> list:
     """Builds the messages list to send to the API from recent history."""
     recent_history = campaign_data["messages"][-max_turns:]
     reminder_prompt = {

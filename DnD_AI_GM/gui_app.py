@@ -155,12 +155,12 @@ if not campaign_data.get("messages"):
     if not world_exists:
         opening_prompt = (
             "Greetings, World Architect! I am ready to build my new campaign setting. "
-            "Please present me with the world-building questions to design our setting!"
+            "Please guide me step by step through world creation. Let's start with Step 1!"
         )
     else:
         opening_prompt = (
             "Greetings! I am ready for character creation. "
-            "Please ask me for my character's details!"
+            "Please guide me step by step through creating my character. Let's start with Step 1!"
         )
 
     opening_context = [
@@ -211,6 +211,17 @@ stats = game_state.get("player", {}).get(
 )
 queued_text = render_dice_roller(stats)
 
+# Dynamic input placeholder based on current phase
+if not world_exists:
+    input_placeholder = "Answer the World Architect or share your ideas for this step..."
+elif not character_created:
+    input_placeholder = "Answer the Character Creator or describe your hero for this step..."
+else:
+    input_placeholder = (
+        "Describe your actions, speech, or cast a spell... "
+        "(e.g. 'I draw my blade and inspect the ancient runes.')"
+    )
+
 # --- Chat input form ---
 with st.form(key="chat_form", clear_on_submit=True):
     col_text, col_btn = st.columns([0.88, 0.12])
@@ -221,10 +232,7 @@ with st.form(key="chat_form", clear_on_submit=True):
             value=queued_text,
             height=85,
             key="user_action_input",
-            placeholder=(
-                "Describe your actions, speech, or cast a spell... "
-                "(e.g. 'I draw my blade and inspect the ancient runes.')"
-            ),
+            placeholder=input_placeholder,
             label_visibility="collapsed",
         )
 
@@ -250,8 +258,8 @@ if submit_action and user_input.strip():
 
     with st.chat_message("assistant"):
         with st.spinner("The Game Master is narrating..."):
-            MAX_HISTORY_TURNS = 8
-            recent_history = campaign_data["messages"][-MAX_HISTORY_TURNS:]
+            history_turns = 16 if (not world_exists or not character_created) else 12
+            recent_history = campaign_data["messages"][-history_turns:]
 
             reminder_prompt = {
                 "role": "system",

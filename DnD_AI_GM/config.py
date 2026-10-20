@@ -15,7 +15,7 @@ MODEL_OPTIONS = {
 }
 
 # Maximum number of recent conversation turns sent to the AI on each call.
-MAX_HISTORY_TURNS = 8
+MAX_HISTORY_TURNS = 16
 
 # --- DEFAULT CAMPAIGN DATA STRUCTURE ---
 

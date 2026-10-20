@@ -4,6 +4,7 @@
 
 import copy
 import json
+import re
 
 import importlib
 import streamlit as st
@@ -302,8 +303,8 @@ def render_sidebar(
             st.warning("⚠️ The GM has not responded yet.")
             if st.button("🎲 Retry GM Response", use_container_width=True):
                 with st.spinner("Invoking Game Master..."):
-                    MAX_HISTORY_TURNS = 8
-                    recent_history = messages_list[-MAX_HISTORY_TURNS:]
+                    history_turns = 16 if (not world_exists or not character_created) else 12
+                    recent_history = messages_list[-history_turns:]
 
                     reminder_prompt = {
                         "role": "system",
@@ -335,6 +336,14 @@ def render_sidebar(
                         reply = response.choices[0].message.content
                         player_snapshot = copy.deepcopy(campaign_data["campaign_state"]["player"])
                         reply = process_and_strip_character_state(reply, campaign_data)
+
+                        if "<WORLD_CODEX>" in reply.upper():
+                            pattern_codex = r"<WORLD_CODEX>(.*?)</WORLD_CODEX>"
+                            match_codex = re.search(pattern_codex, reply, re.DOTALL | re.IGNORECASE)
+                            if match_codex:
+                                campaign_data["world_codex"] = match_codex.group(1).strip()
+                            reply = re.sub(pattern_codex, "", reply, flags=re.DOTALL | re.IGNORECASE).strip()
+
                         retry_entry = {
                             "role": "assistant",
                             "content": reply,
