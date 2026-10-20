@@ -97,17 +97,18 @@ def render_sidebar(
             unsafe_allow_html=True,
         )
 
-        player_info = game_state.get("player", {})
-        name = player_info.get("name", "Hero")
-        species = player_info.get("species", "Unknown")
-        p_class = player_info.get("class", "Adventurer")
-        level = player_info.get("level", 1)
-        hp = player_info.get("hp", 10)
-        max_hp = player_info.get("max_hp", 10)
-        ac = player_info.get("ac", 10)
-        stats = player_info.get(
-            "stats", {"STR": 10, "DEX": 10, "CON": 10, "INT": 10, "WIS": 10, "CHA": 10}
-        )
+        if not isinstance(player_info, dict):
+            player_info = {}
+        name = player_info.get("name") or "Hero"
+        species = player_info.get("species") or "Unknown"
+        p_class = player_info.get("class") or "Adventurer"
+        level = player_info.get("level") or 1
+        hp = player_info.get("hp") if player_info.get("hp") is not None else 10
+        max_hp = player_info.get("max_hp") if player_info.get("max_hp") is not None else 10
+        ac = player_info.get("ac") if player_info.get("ac") is not None else 10
+        stats = player_info.get("stats")
+        if not isinstance(stats, dict):
+            stats = {"STR": 10, "DEX": 10, "CON": 10, "INT": 10, "WIS": 10, "CHA": 10}
 
         # --- Health bar colour ---
         hp_pct = max(0, min(100, int((hp / max_hp * 100) if max_hp > 0 else 0)))
@@ -194,7 +195,9 @@ def render_sidebar(
 
         # --- Inventory expander ---
         with st.expander("🎒 Equipment & Inventory", expanded=False):
-            inventory = player_info.get("inventory", [])
+            inventory = player_info.get("inventory")
+            if not isinstance(inventory, list):
+                inventory = []
             if inventory:
                 items_html = "".join([
                     f'<div class="inv-item-row">'
@@ -209,10 +212,18 @@ def render_sidebar(
 
         # --- Spells expander ---
         with st.expander("✨ Arcane Spells & Slots", expanded=False):
-            spell_data = player_info.get("spellcasting", {})
-            cantrips = spell_data.get("cantrips", [])
-            spells = spell_data.get("prepared_spells", [])
-            slots = spell_data.get("spell_slots", {})
+            spell_data = player_info.get("spellcasting")
+            if not isinstance(spell_data, dict):
+                spell_data = {}
+            cantrips = spell_data.get("cantrips") or []
+            if not isinstance(cantrips, list):
+                cantrips = []
+            spells = spell_data.get("prepared_spells") or []
+            if not isinstance(spells, list):
+                spells = []
+            slots = spell_data.get("spell_slots") or {}
+            if not isinstance(slots, dict):
+                slots = {}
 
             if not cantrips and not spells and not slots:
                 st.info("No active spellcasting capabilities.")
@@ -221,8 +232,8 @@ def render_sidebar(
                     st.markdown("**Spell Slots Remaining:**")
                     for slot_lvl, slot_info in slots.items():
                         lvl_title = slot_lvl.replace("_", " ").title()
-                        cur = slot_info.get("current", 0)
-                        mx = slot_info.get("max", 0)
+                        cur = slot_info.get("current", 0) if isinstance(slot_info, dict) else 0
+                        mx = slot_info.get("max", 0) if isinstance(slot_info, dict) else 0
                         orbs = (
                             "<span class='mana-orb'></span>" * cur
                             + "<span class='mana-orb-empty'></span>" * max(0, mx - cur)

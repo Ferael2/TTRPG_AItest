@@ -98,9 +98,12 @@ ARMOR_DATABASE = {
 
 def calculate_best_ac(player: dict) -> int:
     """Calculates the best Armor Class based on player stats and inventory."""
-    dex_mod = calculate_mod_int(player.get("stats", {}).get("DEX", 10))
-    con_mod = calculate_mod_int(player.get("stats", {}).get("CON", 10))
-    wis_mod = calculate_mod_int(player.get("stats", {}).get("WIS", 10))
+    stats = player.get("stats")
+    if not isinstance(stats, dict):
+        stats = {}
+    dex_mod = calculate_mod_int(stats.get("DEX", 10))
+    con_mod = calculate_mod_int(stats.get("CON", 10))
+    wis_mod = calculate_mod_int(stats.get("WIS", 10))
     p_class = str(player.get("class", "")).lower()
 
     # Unarmored Defense
@@ -114,7 +117,9 @@ def calculate_best_ac(player: dict) -> int:
     best_armor_ac = base_ac
     shield_bonus = 0
 
-    inventory = player.get("inventory", [])
+    inventory = player.get("inventory")
+    if not isinstance(inventory, list):
+        inventory = []
     for item in inventory:
         item_lower = str(item).strip().lower()
         for armor_name, (ac_val, max_dex, is_shield) in ARMOR_DATABASE.items():
@@ -148,6 +153,27 @@ def process_and_strip_character_state(text: str, campaign_data: dict) -> str:
         if parsed_state and isinstance(parsed_state, dict):
             current_player = campaign_data.get("campaign_state", {}).setdefault("player", {})
             deep_merge(current_player, parsed_state)
+            # Ensure critical dict/list keys are never None or invalid types
+            if not isinstance(current_player.get("spellcasting"), dict):
+                current_player["spellcasting"] = {
+                    "cantrips": [],
+                    "prepared_spells": [],
+                    "spell_slots": {},
+                }
+            else:
+                sc = current_player["spellcasting"]
+                if not isinstance(sc.get("cantrips"), list):
+                    sc["cantrips"] = []
+                if not isinstance(sc.get("prepared_spells"), list):
+                    sc["prepared_spells"] = []
+                if not isinstance(sc.get("spell_slots"), dict):
+                    sc["spell_slots"] = {}
+            if not isinstance(current_player.get("stats"), dict):
+                current_player["stats"] = {"STR": 10, "DEX": 10, "CON": 10, "INT": 10, "WIS": 10, "CHA": 10}
+            if not isinstance(current_player.get("inventory"), list):
+                current_player["inventory"] = []
+            if not isinstance(current_player.get("proficiencies"), list):
+                current_player["proficiencies"] = []
         else:
             st.warning("Note: Character state update contained formatting issues and could not be parsed.")
 
@@ -162,7 +188,7 @@ def sync_character_mechanics_fallback(user_text: str, gm_text: str, campaign_dat
     and updates character state accordingly.
     """
     player = campaign_data.get("campaign_state", {}).get("player")
-    if not player or player.get("species") == "Unknown":
+    if not isinstance(player, dict) or player.get("species") == "Unknown":
         return
 
     combined_text = f"{user_text}\n{gm_text}".lower()
@@ -170,20 +196,33 @@ def sync_character_mechanics_fallback(user_text: str, gm_text: str, campaign_dat
     # 1. Long Rest detection
     if re.search(r"\b(long rest|takes? a long rest|finished a long rest)\b", combined_text):
         player["hp"] = player.get("max_hp", 10)
-        for _, slot in player.get("spellcasting", {}).get("spell_slots", {}).items():
-            if isinstance(slot, dict) and "max" in slot:
-                slot["current"] = slot["max"]
+        spellcasting = player.get("spellcasting")
+        if isinstance(spellcasting, dict):
+            spell_slots = spellcasting.get("spell_slots")
+            if isinstance(spell_slots, dict):
+                for _, slot in spell_slots.items():
+                    if isinstance(slot, dict) and "max" in slot:
+                        slot["current"] = slot["max"]
         return
 
     # 2. Spell slot deduction fallback
-    spellcasting = player.get("spellcasting", {})
-    prepared = spellcasting.get("prepared_spells", [])
-    cantrips = [c.lower() for c in spellcasting.get("cantrips", [])]
-    spell_slots = spellcasting.get("spell_slots", {})
+    spellcasting = player.get("spellcasting")
+    if not isinstance(spellcasting, dict):
+        spellcasting = {}
+    prepared = spellcasting.get("prepared_spells") or []
+    if not isinstance(prepared, list):
+        prepared = []
+    cantrips_raw = spellcasting.get("cantrips") or []
+    if not isinstance(cantrips_raw, list):
+        cantrips_raw = []
+    cantrips = [str(c).lower() for c in cantrips_raw]
+    spell_slots = spellcasting.get("spell_slots") or {}
+    if not isinstance(spell_slots, dict):
+        spell_slots = {}
 
     for spell in prepared:
         spell_name = str(spell).strip().lower()
-        if spell_name in cantrips:
+        if not spell_name or spell_name in cantrips:
             continue  # Cantrips cost 0 slots
 
         # Look for casting verbs or explicit spell naming in user action or narration
@@ -204,7 +243,10 @@ def sync_character_mechanics_fallback(user_text: str, gm_text: str, campaign_dat
     for armor_name in ARMOR_DATABASE:
         if re.search(rf"\b(equip|equips|dons|donning|wear|wears|wearing|purchased?|buys?)\b.*?{re.escape(armor_name)}", combined_text):
             # Ensure armor is recorded in inventory
-            inv = player.setdefault("inventory", [])
+            inv = player.get("inventory")
+            if not isinstance(inv, list):
+                inv = []
+                player["inventory"] = inv
             title_name = armor_name.title()
             if not any(armor_name in str(item).lower() for item in inv):
                 inv.append(title_name)
