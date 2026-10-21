@@ -9,8 +9,10 @@ import re
 import importlib
 import streamlit as st
 
+import auth
 import ai_engine
 import state_helpers
+importlib.reload(auth)
 importlib.reload(ai_engine)
 importlib.reload(state_helpers)
 from ai_engine import call_openrouter, update_campaign_summary, SUPPORTED_LANGUAGES, translate_narrative
