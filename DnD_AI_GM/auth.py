@@ -7,7 +7,18 @@ import hmac
 import re
 import secrets
 
-from database import get_user_record, save_user_record, list_user_records, delete_user_record
+from config import SESSION_GRACE_PERIOD_SECONDS
+from database import (
+    get_user_record,
+    save_user_record,
+    list_user_records,
+    delete_user_record,
+    save_session_record,
+    get_session_record,
+    touch_session_record,
+    delete_session_record,
+    delete_user_sessions,
+)
 
 
 def hash_password(password: str, salt: str | None = None) -> tuple[str, str]:
@@ -179,6 +190,85 @@ def delete_user(supabase, username: str, requesting_user: dict | None = None) ->
         return False, f"Adventurer '{cleaned_user}' does not exist in the realm."
 
     if delete_user_record(supabase, cleaned_user):
+        delete_user_sessions(supabase, cleaned_user)
         return True, f"Adventurer '{cleaned_user}' and their campaign vault have been banished from the realm."
     else:
         return False, f"Failed to delete adventurer '{cleaned_user}'. Please try again."
+
+
+# =============================================================================
+# SESSION LIFECYCLE & INACTIVITY GRACE PERIOD
+# =============================================================================
+
+def create_user_session(supabase, username: str) -> str:
+    """Generates a secure cryptographically random session token and persists it in Supabase."""
+    token = secrets.token_urlsafe(32)
+    save_session_record(supabase, token, username)
+    return token
+
+
+def validate_session(
+    supabase,
+    token: str,
+    grace_period_seconds: int = SESSION_GRACE_PERIOD_SECONDS,
+) -> tuple[dict | None, str]:
+    """Validates an adventurer's session token and inactivity grace period.
+
+    Checks:
+    1. Does the session record exist in Supabase?
+    2. Has the user been inactive for longer than grace_period_seconds?
+       - If yes: purges the session from Supabase and returns (None, "Session expired due to inactivity").
+    3. Does the user record still exist in the realm?
+       - If not: purges the orphaned session and returns (None, "Account no longer exists").
+    4. If valid: returns (user_data, "Session valid").
+    """
+    if not token or not token.strip():
+        return None, "No session token provided."
+
+    session_record = get_session_record(supabase, token.strip())
+    if not session_record:
+        return None, "Session record not found."
+
+    last_active_str = session_record.get("last_active")
+    if not last_active_str:
+        delete_session_record(supabase, token.strip())
+        return None, "Invalid session record format."
+
+    try:
+        last_active = datetime.fromisoformat(last_active_str)
+        if last_active.tzinfo is None:
+            last_active = last_active.replace(tzinfo=timezone.utc)
+    except Exception:
+        delete_session_record(supabase, token.strip())
+        return None, "Corrupted session timestamp."
+
+    now = datetime.now(timezone.utc)
+    inactivity_seconds = (now - last_active).total_seconds()
+
+    if inactivity_seconds > grace_period_seconds:
+        # Grace period has lapsed - session is closed
+        delete_session_record(supabase, token.strip())
+        return None, "Session expired due to inactivity."
+
+    username = session_record.get("username", "")
+    user = get_user(supabase, username)
+    if not user:
+        delete_session_record(supabase, token.strip())
+        return None, "Adventurer account no longer exists."
+
+    return user, "Session valid."
+
+
+def touch_session(supabase, token: str) -> bool:
+    """Updates the session's activity timestamp in Supabase to keep the grace period active."""
+    if not token:
+        return False
+    return touch_session_record(supabase, token.strip())
+
+
+def terminate_session(supabase, token: str) -> bool:
+    """Explicitly ends a session (e.g. upon user logout)."""
+    if not token:
+        return False
+    return delete_session_record(supabase, token.strip())
+

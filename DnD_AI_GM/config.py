@@ -17,6 +17,10 @@ MODEL_OPTIONS = {
 # Maximum number of recent conversation turns sent to the AI on each call.
 MAX_HISTORY_TURNS = 16
 
+# --- AUTH & SESSION CONFIGURATION ---
+SESSION_COOKIE_NAME = "dnd_session_token"
+SESSION_GRACE_PERIOD_SECONDS = 3600  # 1 hour grace period of inactivity (closes after 1 hr)
+
 # --- DEFAULT CAMPAIGN DATA STRUCTURE ---
 
 DEFAULT_CAMPAIGN = {

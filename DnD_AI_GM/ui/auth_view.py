@@ -2,7 +2,8 @@
 # Renders the Dark Fantasy login and registration gateway.
 
 import streamlit as st
-from auth import authenticate_user, register_user, get_user, PASSWORD_REQUIREMENTS_TEXT
+from auth import authenticate_user, register_user, get_user, create_user_session, PASSWORD_REQUIREMENTS_TEXT
+from ui.session_manager import set_client_session, render_session_recovery_bridge
 
 
 def render_auth_page(supabase):
@@ -10,9 +11,17 @@ def render_auth_page(supabase):
 
     Mutates st.session_state when login or registration is successful.
     """
+    # Attempt client recovery if browser has localStorage token
+    render_session_recovery_bridge()
+
     col_main = st.container()
 
     with col_main:
+        # Display session inactivity notice if session recently expired
+        if "session_expiry_notice" in st.session_state and st.session_state.session_expiry_notice:
+            st.warning(f"⚔️ {st.session_state.session_expiry_notice}")
+            del st.session_state.session_expiry_notice
+
         st.markdown(
             """
             <div class="auth-portal-card">
@@ -53,7 +62,11 @@ def render_auth_page(supabase):
             if submit_login:
                 user, msg = authenticate_user(supabase, username_input, password_input)
                 if user:
+                    token = create_user_session(supabase, user["username"])
                     st.session_state.current_user = user
+                    st.session_state.session_token = token
+                    set_client_session(token)
+
                     # Admin inherits default_campaign; other users get their isolated campaign key
                     if user.get("role") == "admin":
                         st.session_state.campaign_id = "default_campaign"
@@ -111,7 +124,11 @@ def render_auth_page(supabase):
                         role="player",
                     )
                     if success and new_user:
+                        token = create_user_session(supabase, new_user["username"])
                         st.session_state.current_user = new_user
+                        st.session_state.session_token = token
+                        set_client_session(token)
+
                         st.session_state.campaign_id = f"campaign_{new_user['username'].lower()}"
                         if "campaign_data" in st.session_state:
                             del st.session_state.campaign_data

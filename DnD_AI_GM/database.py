@@ -1,6 +1,7 @@
 # database.py
 # Supabase client setup, campaign persistence helpers, and user account storage.
 
+from datetime import datetime, timezone
 import streamlit as st
 from supabase import create_client, Client
 
@@ -114,4 +115,98 @@ def delete_user_record(supabase: Client, username: str) -> bool:
     except Exception as e:
         st.error(f"Error deleting user record from Supabase: {e}")
         return False
+
+
+# =============================================================================
+# ACTIVE SESSION PERSISTENCE (1-Hour Grace Period Support)
+# =============================================================================
+
+def save_session_record(supabase: Client, token: str, username: str) -> bool:
+    """Stores an authenticated session record with UTC activity timestamps."""
+    if not token or not username:
+        return False
+    now_iso = datetime.now(timezone.utc).isoformat()
+    session_data = {
+        "token": token,
+        "username": username.strip(),
+        "created_at": now_iso,
+        "last_active": now_iso,
+    }
+    try:
+        supabase.table("campaigns").upsert({
+            "id": f"session:{token}",
+            "data": session_data,
+        }).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error saving session record: {e}")
+        return False
+
+
+def get_session_record(supabase: Client, token: str) -> dict | None:
+    """Fetches an active session record by its token from Supabase."""
+    if not token:
+        return None
+    try:
+        resp = (
+            supabase.table("campaigns")
+            .select("data")
+            .eq("id", f"session:{token}")
+            .execute()
+        )
+        if resp.data and len(resp.data) > 0:
+            return resp.data[0].get("data")
+    except Exception as e:
+        print(f"[Supabase] Error retrieving session record: {e}")
+    return None
+
+
+def touch_session_record(supabase: Client, token: str) -> bool:
+    """Updates the last_active timestamp of a session to extend the inactivity window."""
+    if not token:
+        return False
+    try:
+        existing = get_session_record(supabase, token)
+        if not existing:
+            return False
+        existing["last_active"] = datetime.now(timezone.utc).isoformat()
+        supabase.table("campaigns").upsert({
+            "id": f"session:{token}",
+            "data": existing,
+        }).execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error touching session record: {e}")
+        return False
+
+
+def delete_session_record(supabase: Client, token: str) -> bool:
+    """Deletes a session record upon user logout or inactivity timeout."""
+    if not token:
+        return False
+    try:
+        supabase.table("campaigns").delete().eq("id", f"session:{token}").execute()
+        return True
+    except Exception as e:
+        print(f"[Supabase] Error deleting session record: {e}")
+        return False
+
+
+def delete_user_sessions(supabase: Client, username: str) -> None:
+    """Purges all sessions associated with a specific username."""
+    normalized_username = username.strip().lower()
+    try:
+        resp = (
+            supabase.table("campaigns")
+            .select("id, data")
+            .like("id", "session:%")
+            .execute()
+        )
+        if resp.data:
+            for row in resp.data:
+                data = row.get("data", {})
+                if isinstance(data, dict) and data.get("username", "").strip().lower() == normalized_username:
+                    supabase.table("campaigns").delete().eq("id", row["id"]).execute()
+    except Exception as e:
+        print(f"[Supabase] Error purging user sessions: {e}")
 

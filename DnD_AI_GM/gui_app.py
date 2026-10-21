@@ -15,6 +15,7 @@
 
 import copy
 import re
+import time
 
 import streamlit as st
 
@@ -40,13 +41,14 @@ import state_helpers
 importlib.reload(ai_engine)
 importlib.reload(state_helpers)
 
-from auth import init_admin_account
-from config import DEFAULT_CAMPAIGN
+from auth import init_admin_account, validate_session, touch_session, terminate_session
+from config import DEFAULT_CAMPAIGN, SESSION_COOKIE_NAME, SESSION_GRACE_PERIOD_SECONDS
 from database import init_supabase, load_db_campaign, save_db_campaign
 from ai_engine import init_openai_client, call_openrouter, build_system_prompt, update_campaign_summary, translate_narrative
 from state_helpers import process_and_strip_character_state, sync_character_mechanics_fallback
 from styles import inject_styles
 from ui.auth_view import render_auth_page
+from ui.session_manager import set_client_session, clear_client_session
 from ui.sidebar import render_sidebar
 from ui.chat_display import render_chat
 from ui.dice_roller import render_dice_roller
@@ -76,8 +78,30 @@ if "admin_initialized" not in st.session_state:
     st.session_state.admin_initialized = True
 
 # =============================================================================
-# AUTHENTICATION GATE & THEME
+# AUTHENTICATION GATE & SESSION RECOVERY (1-Hour Inactivity Grace Period)
 # =============================================================================
+
+# Handle explicit logout requests cleanly
+if st.session_state.get("logout_requested"):
+    clear_client_session()
+    del st.session_state["logout_requested"]
+
+# Session recovery across reloads and browser restarts
+if not st.session_state.get("current_user"):
+    session_token = st.context.cookies.get(SESSION_COOKIE_NAME) or st.query_params.get("session")
+    if session_token:
+        valid_user, status_msg = validate_session(supabase, session_token, SESSION_GRACE_PERIOD_SECONDS)
+        if valid_user:
+            st.session_state.current_user = valid_user
+            st.session_state.session_token = session_token
+            st.session_state.last_session_touch = time.time()
+            touch_session(supabase, session_token)
+        else:
+            clear_client_session()
+            if "expired" in status_msg.lower():
+                st.session_state.session_expiry_notice = (
+                    "⏳ Your session has closed after 1 hour of inactivity. Please log in again to resume your chronicle."
+                )
 
 is_authenticated = bool(st.session_state.get("current_user"))
 inject_styles()
@@ -87,6 +111,16 @@ if not is_authenticated:
     st.stop()
 
 current_user = st.session_state.current_user
+
+# Keep client cookie and database activity in sync during active use
+if st.session_state.get("session_token"):
+    active_token = st.session_state.session_token
+    now_ts = time.time()
+    # Throttle DB activity touch to once every 60 seconds
+    if now_ts - st.session_state.get("last_session_touch", 0) > 60:
+        touch_session(supabase, active_token)
+        st.session_state.last_session_touch = now_ts
+    set_client_session(active_token, SESSION_GRACE_PERIOD_SECONDS)
 
 # Determine the user's isolated campaign vault ID
 if "campaign_id" not in st.session_state:
@@ -254,6 +288,10 @@ with st.form(key="chat_form", clear_on_submit=True):
 # =============================================================================
 
 if submit_action and user_input.strip():
+    if st.session_state.get("session_token"):
+        touch_session(supabase, st.session_state.session_token)
+        st.session_state.last_session_touch = time.time()
+
     clean_user_input = str(user_input).strip()
 
     with st.chat_message("user"):
