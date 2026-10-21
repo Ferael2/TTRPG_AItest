@@ -89,20 +89,25 @@ if "admin_initialized" not in st.session_state:
 
 # Handle explicit logout requests cleanly
 if st.session_state.get("logout_requested"):
+    if "session" in st.query_params:
+        del st.query_params["session"]
     clear_client_session()
     del st.session_state["logout_requested"]
 
 # Session recovery across reloads and browser restarts
 if not st.session_state.get("current_user"):
-    session_token = st.context.cookies.get(SESSION_COOKIE_NAME) or st.query_params.get("session")
+    session_token = st.query_params.get("session") or st.context.cookies.get(SESSION_COOKIE_NAME)
     if session_token:
         valid_user, status_msg = validate_session(supabase, session_token, SESSION_GRACE_PERIOD_SECONDS)
         if valid_user:
             st.session_state.current_user = valid_user
             st.session_state.session_token = session_token
             st.session_state.last_session_touch = time.time()
+            st.query_params["session"] = session_token
             touch_session(supabase, session_token)
         else:
+            if "session" in st.query_params:
+                del st.query_params["session"]
             clear_client_session()
             if "expired" in status_msg.lower():
                 st.session_state.session_expiry_notice = (
@@ -118,9 +123,10 @@ if not is_authenticated:
 
 current_user = st.session_state.current_user
 
-# Keep client cookie and database activity in sync during active use
+# Keep session query param, client storage, and database activity in sync during active use
 if st.session_state.get("session_token"):
     active_token = st.session_state.session_token
+    st.query_params["session"] = active_token
     now_ts = time.time()
     # Throttle DB activity touch to once every 60 seconds
     if now_ts - st.session_state.get("last_session_touch", 0) > 60:

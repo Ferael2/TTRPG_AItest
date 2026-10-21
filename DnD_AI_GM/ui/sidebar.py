@@ -19,6 +19,7 @@ from ai_engine import call_openrouter, update_campaign_summary, SUPPORTED_LANGUA
 from auth import list_all_users, delete_user, terminate_session
 from config import MODEL_OPTIONS
 from database import save_db_campaign, delete_db_campaign
+from ui.session_manager import clear_client_session
 from state_helpers import calculate_mod_str, process_and_strip_character_state, sync_character_mechanics_fallback
 
 
@@ -64,6 +65,9 @@ def render_sidebar(
             token = st.session_state.get("session_token")
             if token:
                 terminate_session(supabase, token)
+            if "session" in st.query_params:
+                del st.query_params["session"]
+            clear_client_session()
             st.session_state.logout_requested = True
             for k in ["current_user", "session_token", "last_session_touch", "campaign_data", "campaign_id", "turn_counter", "dev_summary_preview"]:
                 if k in st.session_state:

@@ -1,6 +1,4 @@
-# ui/auth_view.py
-# Renders the Dark Fantasy login and registration gateway.
-
+import time
 import streamlit as st
 from auth import authenticate_user, register_user, get_user, create_user_session, PASSWORD_REQUIREMENTS_TEXT
 from ui.session_manager import set_client_session, render_session_recovery_bridge
@@ -65,6 +63,8 @@ def render_auth_page(supabase):
                     token = create_user_session(supabase, user["username"])
                     st.session_state.current_user = user
                     st.session_state.session_token = token
+                    st.session_state.last_session_touch = time.time()
+                    st.query_params["session"] = token
                     set_client_session(token)
 
                     # Admin inherits default_campaign; other users get their isolated campaign key
@@ -127,6 +127,8 @@ def render_auth_page(supabase):
                         token = create_user_session(supabase, new_user["username"])
                         st.session_state.current_user = new_user
                         st.session_state.session_token = token
+                        st.session_state.last_session_touch = time.time()
+                        st.query_params["session"] = token
                         set_client_session(token)
 
                         st.session_state.campaign_id = f"campaign_{new_user['username'].lower()}"
